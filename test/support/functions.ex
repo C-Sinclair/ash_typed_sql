@@ -29,6 +29,7 @@ defmodule AshTypedSql.Test.Member do
     function(:is_vip)
     function(:half)
     function(:label_of)
+    function(:business_days_between, sql: "functions/business_days_between.sql")
   end
 
   attributes do

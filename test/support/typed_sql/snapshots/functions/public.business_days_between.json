@@ -1,0 +1,30 @@
+{
+  "name": "business_days_between",
+  "overloads": [
+    {
+      "arguments": [
+        {
+          "pg_type": "date",
+          "type": {
+            "type": "date"
+          }
+        },
+        {
+          "pg_type": "date",
+          "type": {
+            "type": "date"
+          }
+        }
+      ],
+      "returns": {
+        "type": "integer"
+      },
+      "signature": "business_days_between(from_date date, to_date date)",
+      "strict": false,
+      "volatility": "immutable"
+    }
+  ],
+  "schema": "public",
+  "skipped": [],
+  "sql": "create or replace function business_days_between(from_date date, to_date date)\nreturns integer\nimmutable\nlanguage sql\nas $$\n  select count(*)::integer\n  from generate_series(from_date, to_date - 1, interval '1 day') as d\n  where extract(isodow from d) < 6\n$$\n"
+}

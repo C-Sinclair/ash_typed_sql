@@ -100,6 +100,11 @@ defmodule AshTypedSql.FunctionsTest do
     end
   end
 
+  test "a function defined by an sql file is callable" do
+    assert calc(Ash.Expr.expr(business_days_between(^~D[2026-10-19], ^~D[2026-10-26])), :integer) ==
+             5
+  end
+
   @tag :tmp_dir
   test "a volatile snapshot fails compilation without volatile? true", %{tmp_dir: dir} do
     File.mkdir_p!(Path.join(dir, "functions"))

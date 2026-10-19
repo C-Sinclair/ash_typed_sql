@@ -60,6 +60,13 @@ defmodule AshTypedSql.Test.Schema do
     GenServer.stop(admin)
     {:ok, conn} = Postgrex.start_link(config())
     Enum.each(@statements, &Postgrex.query!(conn, &1, []))
+
+    Postgrex.query!(
+      conn,
+      File.read!("test/support/typed_sql/functions/business_days_between.sql"),
+      []
+    )
+
     GenServer.stop(conn)
   end
 end

@@ -153,6 +153,7 @@ defmodule MyApp.Accounts.Customer do
     extensions: [AshTypedSql.Functions]
 
   typed_sql_functions do
+    module_prefix MyApp.Expressions
     function :similarity, schema: "public"
     function :business_days_between, sql: "functions/business_days_between.sql"
   end
@@ -167,20 +168,26 @@ Customer
 
 `mix ash.codegen` reads each function from `pg_proc`:
 
-- each overload becomes one argument list in `arguments`
+- each overload becomes one argument list in `arguments`, longest first and `decimal` before `float`
+- each fragment placeholder is cast to the overload's Postgres type, so Postgres runs the overload Ash matched
 - the return type becomes a `type/2` cast around the fragment, because `Ash.CustomExpression` has no return-type option
-- a function returning `boolean` gets `predicate? true`
+- a function whose overloads all return `boolean` gets `predicate? true`
 - a set-returning function is refused, because it belongs with views
 - a volatile function is refused unless you set `volatile? true`
 - overloads with `anyelement` or `VARIADIC` arguments are skipped and named in the output
+- an overload whose Ash argument types repeat an earlier overload's, such as `int4` next to `int8`, is skipped the same way
 
-With `sql:`, codegen also writes the `CREATE OR REPLACE FUNCTION` migration from the file.
+Each module is named after its function, under `module_prefix`, which defaults to the resource module. The example above generates `MyApp.Expressions.Similarity` and `MyApp.Expressions.BusinessDaysBetween`.
 
-Ash reads custom expressions from compile-time config, so the generated modules have to be listed there:
+With `sql:`, codegen runs the file inside a transaction that it rolls back, reads the function from `pg_proc`, and writes an Ecto migration to the repo's migrations directory. Run it with `mix ecto.migrate`. A new migration is written whenever the file changes, and its `down` restores the previous version of the file. The file must hold one `CREATE OR REPLACE FUNCTION` statement.
+
+Ash reads custom expressions from compile-time config, so the generated modules have to be listed there. `mix ash_typed_sql.register_functions` (needs Igniter) adds every generated module to `config/config.exs` and keeps the ones already listed:
 
 ```elixir
 config :ash, :custom_expressions, [MyApp.Expressions.Similarity, MyApp.Expressions.BusinessDaysBetween]
 ```
+
+Ash calls `name/0` on every listed module, so run `mix ash.codegen` before registering a new function.
 
 The generated expressions run only on `AshPostgres.DataLayer`. If Ash evaluates an expression in Elixir rather than in SQL, a generated expression returns `:unknown`.
 

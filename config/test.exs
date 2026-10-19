@@ -23,5 +23,6 @@ config :ash, :custom_expressions, [
   AshTypedSql.Test.Expressions.NameScore,
   AshTypedSql.Test.Expressions.IsVip,
   AshTypedSql.Test.Expressions.Half,
-  AshTypedSql.Test.Expressions.LabelOf
+  AshTypedSql.Test.Expressions.LabelOf,
+  AshTypedSql.Test.Expressions.BusinessDaysBetween
 ]

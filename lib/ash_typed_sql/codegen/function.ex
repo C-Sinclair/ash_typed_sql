@@ -36,18 +36,137 @@ defmodule AshTypedSql.Codegen.Function do
     |> Query.apply_pending(opts)
   end
 
-  @doc "Returns `{path, contents}` for every function snapshot on `resources`, read through `repo`'s database."
+  @doc """
+  Returns `{path, contents}` for every function snapshot on `resources`, read through `repo`'s database.
+
+  A function declared with `sql` is created inside a transaction that is rolled back, and gets a migration whenever its file differs from the snapshot.
+  """
   def files(repo, resources) do
     {:ok, conn} = Postgrex.start_link(Query.connection_config(repo.config()))
 
     try do
       for resource <- resources, function <- Info.typed_sql_functions(resource) do
-        snapshot = snapshot(conn, resource, function)
-        {Info.snapshot_path(resource, function), Jason.encode!(snapshot, pretty: true) <> "\n"}
+        path = Info.snapshot_path(resource, function)
+
+        if function.sql do
+          sql = File.read!(Info.sql_path(resource, function))
+          {snapshot, created} = define(conn, resource, function, sql)
+          snapshot = Map.put(snapshot, "sql", sql)
+
+          previous =
+            case File.read(path) do
+              {:ok, json} -> json |> Jason.decode!() |> Map.get("sql")
+              {:error, :enoent} -> nil
+            end
+
+          migration =
+            if previous != sql, do: [migration(repo, function, sql, previous, created)], else: []
+
+          [{path, encode(snapshot)} | migration]
+        else
+          [{path, encode(snapshot(conn, resource, function))}]
+        end
       end
+      |> List.flatten()
     after
       GenServer.stop(conn)
     end
+  end
+
+  defp encode(snapshot), do: Jason.encode!(snapshot, pretty: true) <> "\n"
+
+  defp define(conn, resource, function, sql) do
+    label = "#{inspect(resource)} function #{function.schema}.#{function.name} (#{function.sql})"
+
+    {:error, result} =
+      Postgrex.transaction(conn, fn conn ->
+        case Postgrex.query(conn, sql, []) do
+          {:ok, _} ->
+            snapshot = snapshot(conn, resource, function)
+            Postgrex.rollback(conn, {snapshot, written(conn, function)})
+
+          {:error, error} ->
+            Postgrex.rollback(conn, {:error, Exception.message(error)})
+        end
+      end)
+
+    case result do
+      {:error, message} -> Mix.raise("#{label}: Postgres refused the file: #{message}")
+      result -> result
+    end
+  end
+
+  # A row's xmin is the transaction that last wrote it, so this finds the overloads the file created or replaced.
+  defp written(conn, function) do
+    %{rows: rows} =
+      Postgrex.query!(
+        conn,
+        """
+        select p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')'
+        from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname = $1 and p.proname = $2 and p.xmin = pg_current_xact_id()::xid
+        order by 1
+        """,
+        [function.schema, to_string(function.name)]
+      )
+
+    List.flatten(rows)
+  end
+
+  defp migration(repo, function, sql, previous, created) do
+    timestamp = timestamp()
+    name = "typed_sql_function_#{function.name}"
+    module = Module.concat([repo, Migrations, Macro.camelize(name) <> timestamp])
+
+    down =
+      if previous do
+        heredoc(previous)
+      else
+        Enum.map_join(
+          created,
+          "\n",
+          &~s|    execute("drop function \\"#{function.schema}\\".#{&1}")|
+        )
+      end
+
+    contents = """
+    defmodule #{inspect(module)} do
+      use Ecto.Migration
+
+      def up do
+    #{heredoc(sql)}
+      end
+
+      def down do
+    #{down}
+      end
+    end
+    """
+
+    {Path.join(migrations_path(repo), "#{timestamp}_#{name}.exs"), contents}
+  end
+
+  defp heredoc(sql) do
+    body =
+      sql |> String.trim_trailing() |> String.split("\n") |> Enum.map_join("\n", &("    " <> &1))
+
+    ~s|    execute(~S"""\n#{body}\n    """)|
+  end
+
+  # The same lookup as `mix ecto.gen.migration`, so the migration lands where `mix ecto.migrate` reads.
+  defp migrations_path(repo) do
+    config = repo.config()
+
+    config[:migrations_path] ||
+      Path.join(
+        config[:priv] || "priv/#{repo |> Module.split() |> List.last() |> Macro.underscore()}",
+        "migrations"
+      )
+  end
+
+  defp timestamp do
+    {{y, m, d}, {hh, mm, ss}} = :calendar.universal_time()
+    Enum.map_join([y, m, d, hh, mm, ss], &String.pad_leading(to_string(&1), 2, "0"))
   end
 
   @doc "Reads one function from `pg_proc` and returns its snapshot as a JSON-ready map."

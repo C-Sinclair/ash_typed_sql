@@ -80,4 +80,79 @@ defmodule AshTypedSql.Codegen.FunctionTest do
     assert polymorphic =~
              "skipping label_of(a anyelement, b anyelement, c anyelement), anyelement has no single type"
   end
+
+  describe "sql files" do
+    setup do
+      path =
+        AshTypedSql.Functions.Info.snapshot_path(Member, %{
+          schema: "public",
+          name: :business_days_between
+        })
+
+      original = File.read!(path)
+      on_exit(fn -> File.write!(path, original) end)
+      %{path: path, original: original}
+    end
+
+    defp migration do
+      Repo
+      |> Function.files([Member])
+      |> Enum.find(fn {path, _} ->
+        String.ends_with?(path, "_typed_sql_function_business_days_between.exs")
+      end)
+    end
+
+    test "a current snapshot needs no migration" do
+      assert migration() == nil
+    end
+
+    test "a changed file gets a migration whose down restores the previous file", %{
+      path: path,
+      original: original
+    } do
+      previous =
+        "create or replace function business_days_between(from_date date, to_date date) returns integer immutable language sql as $$ select 0 $$"
+
+      File.write!(path, Jason.encode!(Map.put(Jason.decode!(original), "sql", previous)))
+
+      assert {migration_path, contents} = migration()
+
+      assert migration_path =~
+               ~r"^test/support/priv/repo/migrations/\d{14}_typed_sql_function_business_days_between.exs$"
+
+      assert contents =~ "select count(*)::integer"
+      assert contents =~ "select 0"
+    end
+
+    @tag :tmp_dir
+    test "a new function's migration creates it on up and drops it on down", %{path: path} do
+      File.rm!(path)
+      {migration_path, contents} = migration()
+      version = migration_path |> Path.basename() |> Integer.parse() |> elem(0)
+      [{module, _}] = Code.compile_string(contents)
+
+      :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)
+      Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
+
+      exists? = fn ->
+        Repo.query!("select 1 from pg_proc where proname = 'business_days_between'").num_rows == 1
+      end
+
+      Repo.query!("drop function business_days_between")
+      refute exists?.()
+      assert Ecto.Migrator.up(Repo, version, module, log: false, migration_lock: false) == :ok
+      assert exists?.()
+      assert Repo.query!("select business_days_between('2026-10-19', '2026-10-26')").rows == [[5]]
+      assert Ecto.Migrator.down(Repo, version, module, log: false, migration_lock: false) == :ok
+      refute exists?.()
+    end
+
+    test "--check raises when a file has changed since its snapshot", %{
+      path: path,
+      original: original
+    } do
+      File.write!(path, Jason.encode!(Map.put(Jason.decode!(original), "sql", "select 1")))
+      assert_raise Ash.Error.Framework.PendingCodegen, fn -> Function.run(["--check"]) end
+    end
+  end
 end
