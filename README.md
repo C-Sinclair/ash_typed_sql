@@ -261,6 +261,11 @@ def deps do
 end
 ```
 
+## Examples
+
+- [`examples/simple`](examples/simple)
+- [`examples/typescript`](examples/typescript): a Phoenix app that exposes every feature through ash_typescript RPC to a TypeScript front end
+
 ## Design
 
 Design docs and decision records live in [`docs/`](docs/designs/INDEX.md).
