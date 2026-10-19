@@ -1,7 +1,7 @@
 # ADR-005 — Classify statements with `EXPLAIN (GENERIC_PLAN)`, and require Postgres 16
 
 **Status:** proposed
-**Date:** 2026-10-18
+**Date:** 2026-10-19
 **Deciders:** Conor Sinclair
 **Relates to:** [DD-002](../designs/DD-002-query-actions.md)
 
@@ -40,4 +40,5 @@ Option C. It answers the question from the planner, which also resolves views an
 
 ## Evidence
 
-- `GENERIC_PLAN` was added in Postgres 16. Not verified in this repo: a test describing a CTE with two writes.
+- `GENERIC_PLAN` was added in Postgres 16. `AshTypedSql.QueryTest` classifies a CTE that deletes from `orders` and inserts into `audit_log` as `:mixed` with both writes, against Postgres 17.11.
+- Postgres reports the `$n` parameters of the `EXPLAIN` statement itself, and Postgrex refuses to run it without one value per parameter. Codegen passes `nil` for each, which is safe because `EXPLAIN` without `ANALYZE` executes nothing.

@@ -26,7 +26,7 @@ typed_sql do
 end
 ```
 
-`argument_names` names the positional parameters. `type_overrides` maps an unmapped OID by hand. `not_null` marks computed columns as non-nullable. `kind` overrides classification. `as :read | :create | :update | :destroy` opts in to a manual CRUD action.
+`argument_names` names the positional parameters, and defaults to `arg1..argN`. `type_overrides` maps an unmapped type by hand, keyed by Postgres type name. `AshTypedSql.Info.kind/2` and `AshTypedSql.Info.writes/2` expose the classification, because generic actions have no metadata field. `not_null` marks computed columns as non-nullable. `kind` overrides classification. `as :read | :create | :update | :destroy` opts in to a manual CRUD action.
 
 ## Non-goals
 
@@ -57,7 +57,7 @@ action :top_customers, {:array, MyApp.Accounts.Customer.TopCustomersRow} do
 end
 ```
 
-`AshTypedSql.Run` executes the fixed SQL through the resource's repo and casts each row through the row type.
+`AshTypedSql.Run` executes the fixed SQL through the resource's repo and casts each row through the row type. The SQL text is stored in the snapshot, so a `.sql` file edited after codegen has no effect until `mix ash.codegen` runs again.
 
 Opt-in CRUD conditions:
 

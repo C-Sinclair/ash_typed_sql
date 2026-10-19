@@ -79,7 +79,7 @@ The `CommandComplete` tag (`INSERT 0 1`, `UPDATE 3`) only arrives after executio
 
 The snapshot records this as `kind` (`:read`, `:create`, `:update`, `:destroy` or `:mixed`) plus the tables written. AshTypedSql uses it in three ways:
 
-- Generic actions carry the `kind` and written tables as metadata, so policies can check them. A `:read` query can be marked as safe to retry.
+- `AshTypedSql.Info.kind/2` and `AshTypedSql.Info.writes/2` return the `kind` and written tables of a generated action, so policy checks can read them. Ash generic actions have no metadata field to carry them. A `:read` query can be marked as safe to retry.
 - A `:read` query whose result columns all come from the resource's table, covering its primary key and every non-nullable attribute, can become a manual `read` action that returns resource records. Filtering, sorting and pagination from `Ash.Query` do not apply to it.
 - A `:create`, `:update` or `:destroy` query that writes only the resource's table and `RETURNING`s its full row can become a manual `create`, `update` or `destroy` action.
 
@@ -194,12 +194,12 @@ The generated expressions run only on `AshPostgres.DataLayer`. If Ash evaluates 
 | `text`, `varchar`, `citext` | `:string`, `:ci_string` for `citext` |
 | `bool` | `:boolean` |
 | `uuid` | `:uuid` |
-| `date`, `timestamp`, `timestamptz` | `:date`, `:naive_datetime_usec`, `:utc_datetime_usec` |
+| `date`, `timestamp`, `timestamptz` | `:date`, `:naive_datetime`, `:utc_datetime_usec` |
 | `json`, `jsonb` | `:map` |
 | arrays of the above | `{:array, type}` |
 | enums | an `Ash.Type.Enum` generated from `pg_enum` |
 
-An unmapped OID fails `mix ash.codegen` with the type name. A `type_overrides` option on the query maps it by hand.
+An unmapped OID fails `mix ash.codegen` with the type name. A `type_overrides` option on the query maps it by hand, keyed by Postgres type name, such as `type_overrides inet: :string`.
 
 ## Installation
 
