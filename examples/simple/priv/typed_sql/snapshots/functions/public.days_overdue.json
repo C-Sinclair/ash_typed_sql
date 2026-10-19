@@ -1,0 +1,30 @@
+{
+  "name": "days_overdue",
+  "overloads": [
+    {
+      "arguments": [
+        {
+          "pg_type": "date",
+          "type": {
+            "type": "date"
+          }
+        },
+        {
+          "pg_type": "date",
+          "type": {
+            "type": "date"
+          }
+        }
+      ],
+      "returns": {
+        "type": "integer"
+      },
+      "signature": "days_overdue(due_on date, as_of date)",
+      "strict": false,
+      "volatility": "immutable"
+    }
+  ],
+  "schema": "public",
+  "skipped": [],
+  "sql": "create or replace function days_overdue(due_on date, as_of date)\nreturns integer\nimmutable\nlanguage sql\nas $$\n  select greatest(as_of - due_on, 0)\n$$\n"
+}

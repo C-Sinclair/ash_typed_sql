@@ -1,0 +1,88 @@
+{
+  "columns": [
+    {
+      "name": "loan_id",
+      "source": {
+        "column": "id",
+        "not_null": true,
+        "schema": "public",
+        "table": "loans"
+      },
+      "type": {
+        "type": "integer"
+      }
+    },
+    {
+      "name": "book_id",
+      "source": {
+        "column": "book_id",
+        "not_null": true,
+        "schema": "public",
+        "table": "loans"
+      },
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "borrower",
+      "source": {
+        "column": "borrower",
+        "not_null": true,
+        "schema": "public",
+        "table": "loans"
+      },
+      "type": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "due_on",
+      "source": {
+        "column": "due_on",
+        "not_null": true,
+        "schema": "public",
+        "table": "loans"
+      },
+      "type": {
+        "type": "date"
+      }
+    }
+  ],
+  "function": {
+    "arguments": [
+      {
+        "name": "as_of",
+        "type": "date"
+      }
+    ],
+    "returns": [
+      {
+        "name": "loan_id",
+        "type": "bigint"
+      },
+      {
+        "name": "book_id",
+        "type": "uuid"
+      },
+      {
+        "name": "borrower",
+        "type": "text"
+      },
+      {
+        "name": "due_on",
+        "type": "date"
+      }
+    ]
+  },
+  "materialized": false,
+  "params": [
+    {
+      "type": "date"
+    }
+  ],
+  "primary_key": [
+    "loan_id"
+  ],
+  "sql": "select l.id as loan_id, l.book_id, l.borrower, l.due_on\nfrom loans l\nwhere l.returned_on is null and l.due_on <= $1"
+}

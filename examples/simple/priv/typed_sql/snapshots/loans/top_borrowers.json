@@ -1,0 +1,31 @@
+{
+  "columns": [
+    {
+      "name": "borrower",
+      "source": {
+        "column": "borrower",
+        "not_null": true,
+        "schema": "public",
+        "table": "loans"
+      },
+      "type": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "loan_count",
+      "source": null,
+      "type": {
+        "type": "integer"
+      }
+    }
+  ],
+  "kind": "read",
+  "params": [
+    {
+      "type": "integer"
+    }
+  ],
+  "sql": "select borrower, count(*) as loan_count\nfrom loans\ngroup by borrower\norder by loan_count desc, borrower\nlimit $1\n",
+  "writes": []
+}

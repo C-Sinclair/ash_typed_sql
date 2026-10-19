@@ -1,0 +1,51 @@
+{
+  "columns": [
+    {
+      "name": "id",
+      "source": {
+        "column": "id",
+        "not_null": true,
+        "schema": "public",
+        "table": "books"
+      },
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "title",
+      "source": {
+        "column": "title",
+        "not_null": true,
+        "schema": "public",
+        "table": "books"
+      },
+      "type": {
+        "type": "string"
+      }
+    }
+  ],
+  "kind": "mixed",
+  "params": [
+    {
+      "type": "string"
+    },
+    {
+      "type": "string"
+    },
+    {
+      "type": "date"
+    }
+  ],
+  "sql": "with author as (\n  insert into authors (name) values ($1)\n  on conflict (name) do update set name = excluded.name\n  returning id\n)\ninsert into books (author_id, title, published_on)\nselect id, $2, $3 from author\nreturning id, title\n",
+  "writes": [
+    {
+      "operation": "insert",
+      "table": "books"
+    },
+    {
+      "operation": "insert",
+      "table": "authors"
+    }
+  ]
+}

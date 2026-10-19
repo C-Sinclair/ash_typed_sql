@@ -1,0 +1,59 @@
+{
+  "columns": [
+    {
+      "name": "id",
+      "source": {
+        "column": "id",
+        "not_null": true,
+        "schema": "public",
+        "table": "reviews"
+      },
+      "type": {
+        "type": "integer"
+      }
+    },
+    {
+      "name": "book_id",
+      "source": {
+        "column": "book_id",
+        "not_null": true,
+        "schema": "public",
+        "table": "reviews"
+      },
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "rating",
+      "source": {
+        "column": "rating",
+        "not_null": true,
+        "schema": "public",
+        "table": "reviews"
+      },
+      "type": {
+        "type": "integer"
+      }
+    }
+  ],
+  "kind": "create",
+  "params": [
+    {
+      "type": "uuid"
+    },
+    {
+      "type": "integer"
+    },
+    {
+      "type": "string"
+    }
+  ],
+  "sql": "insert into reviews (book_id, rating, body)\nvalues ($1, $2, $3)\nreturning id, book_id, rating\n",
+  "writes": [
+    {
+      "operation": "insert",
+      "table": "reviews"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "columns": [
+    {
+      "name": "id",
+      "source": {
+        "column": "id",
+        "not_null": true,
+        "schema": "public",
+        "table": "books"
+      },
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "title",
+      "source": {
+        "column": "title",
+        "not_null": true,
+        "schema": "public",
+        "table": "books"
+      },
+      "type": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "published_on",
+      "source": {
+        "column": "published_on",
+        "not_null": true,
+        "schema": "public",
+        "table": "books"
+      },
+      "type": {
+        "type": "date"
+      }
+    },
+    {
+      "name": "author_id",
+      "source": {
+        "column": "author_id",
+        "not_null": true,
+        "schema": "public",
+        "table": "books"
+      },
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "author_name",
+      "source": {
+        "column": "name",
+        "not_null": true,
+        "schema": "public",
+        "table": "authors"
+      },
+      "type": {
+        "type": "string"
+      }
+    }
+  ],
+  "materialized": false,
+  "params": [],
+  "primary_key": [
+    "id"
+  ],
+  "sql": "select b.id, b.title, b.published_on, b.author_id, a.name as author_name\nfrom books b\njoin authors a on a.id = b.author_id"
+}

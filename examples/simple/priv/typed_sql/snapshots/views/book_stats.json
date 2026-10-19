@@ -1,0 +1,36 @@
+{
+  "columns": [
+    {
+      "name": "book_id",
+      "source": {
+        "column": "id",
+        "not_null": true,
+        "schema": "public",
+        "table": "books"
+      },
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "review_count",
+      "source": null,
+      "type": {
+        "type": "integer"
+      }
+    },
+    {
+      "name": "average_rating",
+      "source": null,
+      "type": {
+        "type": "decimal"
+      }
+    }
+  ],
+  "materialized": true,
+  "params": [],
+  "primary_key": [
+    "book_id"
+  ],
+  "sql": "select b.id as book_id, count(r.id) as review_count, avg(r.rating) as average_rating\nfrom books b\nleft join reviews r on r.book_id = b.id\ngroup by b.id"
+}

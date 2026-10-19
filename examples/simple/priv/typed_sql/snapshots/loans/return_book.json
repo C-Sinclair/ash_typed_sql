@@ -1,0 +1,89 @@
+{
+  "columns": [
+    {
+      "name": "id",
+      "source": {
+        "column": "id",
+        "not_null": true,
+        "schema": "public",
+        "table": "loans"
+      },
+      "type": {
+        "type": "integer"
+      }
+    },
+    {
+      "name": "book_id",
+      "source": {
+        "column": "book_id",
+        "not_null": true,
+        "schema": "public",
+        "table": "loans"
+      },
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "borrower",
+      "source": {
+        "column": "borrower",
+        "not_null": true,
+        "schema": "public",
+        "table": "loans"
+      },
+      "type": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "loaned_on",
+      "source": {
+        "column": "loaned_on",
+        "not_null": true,
+        "schema": "public",
+        "table": "loans"
+      },
+      "type": {
+        "type": "date"
+      }
+    },
+    {
+      "name": "due_on",
+      "source": {
+        "column": "due_on",
+        "not_null": true,
+        "schema": "public",
+        "table": "loans"
+      },
+      "type": {
+        "type": "date"
+      }
+    },
+    {
+      "name": "returned_on",
+      "source": {
+        "column": "returned_on",
+        "not_null": false,
+        "schema": "public",
+        "table": "loans"
+      },
+      "type": {
+        "type": "date"
+      }
+    }
+  ],
+  "kind": "update",
+  "params": [
+    {
+      "type": "integer"
+    }
+  ],
+  "sql": "update loans set returned_on = current_date\nwhere id = $1 and returned_on is null\nreturning *\n",
+  "writes": [
+    {
+      "operation": "update",
+      "table": "loans"
+    }
+  ]
+}
