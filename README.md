@@ -108,27 +108,37 @@ defmodule MyApp.Accounts.CustomerStats do
     primary_key [:customer_id]
   end
 
+  postgres do
+    repo MyApp.Repo
+  end
+
   relationships do
-    belongs_to :customer, MyApp.Accounts.Customer, source_attribute: :customer_id
+    belongs_to :customer, MyApp.Accounts.Customer do
+      source_attribute :customer_id
+      define_attribute? false
+    end
   end
 end
 ```
 
 From that file, `mix ash.codegen` generates:
 
-- a migration with `CREATE OR REPLACE VIEW customer_stats AS ...`, and a new migration whenever the file changes
+- a migration with `CREATE VIEW customer_stats AS ...`, and a new migration whenever the file changes
 - one attribute per column, typed by describing the `SELECT`
 - `postgres do table "customer_stats"; migrate? false end`, so the AshPostgres migration generator leaves the view alone
+- a primary `:read` action, unless the resource declares a read action
+
+The `belongs_to` needs `define_attribute? false`, because `customer_id` is already an attribute.
 
 `MyApp.Accounts.Customer` can then declare `has_one :stats, MyApp.Accounts.CustomerStats`, and `Ash.Query.filter(customers, stats.order_count > 5)` works like any other relationship filter.
 
 Postgres reports every view column as nullable, because `pg_attribute.attnotnull` is always false for a view. AshTypedSql takes nullability from describing the `SELECT` against its base tables. The `not_null [...]` option marks computed columns that can never be null.
 
-Changing a view's columns, or changing a view that another view depends on, makes `CREATE OR REPLACE VIEW` fail. In those cases the generated migration drops and recreates the affected views in dependency order, read from `pg_depend`.
+A changed view migrates with `CREATE OR REPLACE VIEW` when Postgres accepts it. Dropping, renaming or retyping a column makes it fail. In those cases the generated migration drops and recreates the view and every view that depends on it, in dependency order read from `pg_depend`. Codegen decides by trying each direction of the migration against the dev database in a transaction it rolls back, so the dev database must be migrated before `mix ash.codegen` runs. A migration that would fail, such as one that drops a column a dependent view reads, fails `mix ash.codegen` with the Postgres error.
 
 ### Materialized views
 
-`materialized? true` generates `CREATE MATERIALIZED VIEW` instead, plus a unique index on `primary_key` and a `:refresh` generic action that runs `REFRESH MATERIALIZED VIEW CONCURRENTLY`. Schedule the refresh with `ash_oban`.
+`materialized? true` generates `CREATE MATERIALIZED VIEW` instead, plus a unique index `<table>_primary_key_index` on `primary_key` and a `:refresh` generic action that runs `REFRESH MATERIALIZED VIEW CONCURRENTLY`. Schedule the refresh with `ash_oban`.
 
 ### Open question: parameterized views
 

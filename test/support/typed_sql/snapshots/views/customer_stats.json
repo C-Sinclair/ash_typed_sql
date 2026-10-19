@@ -1,0 +1,60 @@
+{
+  "columns": [
+    {
+      "name": "customer_id",
+      "source": {
+        "column": "id",
+        "not_null": true,
+        "schema": "public",
+        "table": "customers"
+      },
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "name",
+      "source": {
+        "column": "name",
+        "not_null": true,
+        "schema": "public",
+        "table": "customers"
+      },
+      "type": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "email",
+      "source": {
+        "column": "email",
+        "not_null": false,
+        "schema": "public",
+        "table": "customers"
+      },
+      "type": {
+        "type": "ci_string"
+      }
+    },
+    {
+      "name": "order_count",
+      "source": null,
+      "type": {
+        "type": "integer"
+      }
+    },
+    {
+      "name": "lifetime_value",
+      "source": null,
+      "type": {
+        "type": "decimal"
+      }
+    }
+  ],
+  "materialized": false,
+  "params": [],
+  "primary_key": [
+    "customer_id"
+  ],
+  "sql": "select c.id as customer_id, c.name, c.email, count(o.id) as order_count, sum(o.total) as lifetime_value\nfrom customers c\nleft join orders o on o.customer_id = c.id\ngroup by c.id"
+}

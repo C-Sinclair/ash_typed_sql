@@ -20,7 +20,21 @@ defmodule AshTypedSql.Codegen.Query do
     :parameters
   ]
 
+  @doc false
+  def connection_config(config), do: Keyword.take(config, @connection_keys)
+
   def run(argv) do
+    opts = parse_args(argv)
+
+    opts
+    |> resources(AshTypedSql)
+    |> Enum.group_by(&AshPostgres.DataLayer.Info.repo(&1, :mutate))
+    |> Enum.flat_map(fn {repo, resources} -> snapshots(repo.config(), resources) end)
+    |> write(opts)
+  end
+
+  @doc false
+  def parse_args(argv) do
     {opts, _, _} =
       OptionParser.parse(argv,
         switches: [
@@ -33,16 +47,21 @@ defmodule AshTypedSql.Codegen.Query do
       )
 
     {:ok, _} = Application.ensure_all_started(:postgrex)
+    opts
+  end
 
-    pending =
-      if(opts[:domains], do: ["--domains", opts[:domains]], else: [])
-      |> Ash.Mix.Tasks.Helpers.domains!()
-      |> Enum.flat_map(&Ash.Domain.Info.resources/1)
-      |> Enum.uniq()
-      |> Enum.filter(&(AshTypedSql in Spark.extensions(&1)))
-      |> Enum.group_by(&AshPostgres.DataLayer.Info.repo(&1, :mutate))
-      |> Enum.flat_map(fn {repo, resources} -> snapshots(repo.config(), resources) end)
-      |> Enum.reject(fn {path, contents} -> File.read(path) == {:ok, contents} end)
+  @doc false
+  def resources(opts, extension) do
+    if(opts[:domains], do: ["--domains", opts[:domains]], else: [])
+    |> Ash.Mix.Tasks.Helpers.domains!()
+    |> Enum.flat_map(&Ash.Domain.Info.resources/1)
+    |> Enum.uniq()
+    |> Enum.filter(&(extension in Spark.extensions(&1)))
+  end
+
+  @doc "Writes each changed `{path, contents}` pair, or raises or prints it under `--check` or `--dry-run`."
+  def write(files, opts) do
+    pending = Enum.reject(files, fn {path, contents} -> File.read(path) == {:ok, contents} end)
 
     cond do
       pending == [] ->
@@ -65,7 +84,7 @@ defmodule AshTypedSql.Codegen.Query do
 
   @doc "Returns `{snapshot_path, json}` for every query on `resources`, described through a connection built from `config`."
   def snapshots(config, resources) do
-    config = Keyword.take(config, @connection_keys)
+    config = connection_config(config)
     {:ok, conn} = Postgrex.start_link(config)
     {:ok, describe_conn} = Describe.connect(config)
 
@@ -114,7 +133,8 @@ defmodule AshTypedSql.Codegen.Query do
     }
   end
 
-  defp type(conn, oid, query, label) do
+  @doc false
+  def type(conn, oid, query, label) do
     case TypeMap.resolve(conn, oid) do
       {:ok, type} ->
         type
@@ -130,7 +150,8 @@ defmodule AshTypedSql.Codegen.Query do
     end
   end
 
-  defp column(conn, column, query, label) do
+  @doc false
+  def column(conn, column, query, label) do
     source =
       if column.table_oid != 0 do
         %{rows: [[schema, table, attname, not_null]]} =

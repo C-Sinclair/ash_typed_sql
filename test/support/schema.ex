@@ -3,7 +3,7 @@ defmodule AshTypedSql.Test.Schema do
 
   @statements [
     "create extension if not exists citext",
-    "drop table if exists audit_log, orders, customers cascade",
+    "drop table if exists schema_migrations, audit_log, orders, customers cascade",
     "drop type if exists customer_tier",
     "create type customer_tier as enum ('bronze', 'silver', 'gold')",
     """
