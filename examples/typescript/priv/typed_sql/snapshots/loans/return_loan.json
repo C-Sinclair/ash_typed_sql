@@ -1,0 +1,41 @@
+{
+  "columns": [
+    {
+      "name": "id",
+      "source": {
+        "column": "id",
+        "not_null": true,
+        "schema": "shelf",
+        "table": "loans"
+      },
+      "type": {
+        "type": "integer"
+      }
+    },
+    {
+      "name": "returned_on",
+      "source": {
+        "column": "returned_on",
+        "not_null": false,
+        "schema": "shelf",
+        "table": "loans"
+      },
+      "type": {
+        "type": "date"
+      }
+    }
+  ],
+  "kind": "update",
+  "params": [
+    {
+      "type": "integer"
+    }
+  ],
+  "sql": "update shelf.loans\nset returned_on = current_date\nwhere id = $1 and returned_on is null\nreturning id, returned_on\n",
+  "writes": [
+    {
+      "operation": "update",
+      "table": "loans"
+    }
+  ]
+}

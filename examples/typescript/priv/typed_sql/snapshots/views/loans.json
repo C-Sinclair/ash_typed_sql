@@ -1,0 +1,82 @@
+{
+  "columns": [
+    {
+      "name": "id",
+      "source": {
+        "column": "id",
+        "not_null": true,
+        "schema": "shelf",
+        "table": "loans"
+      },
+      "type": {
+        "type": "integer"
+      }
+    },
+    {
+      "name": "book_id",
+      "source": {
+        "column": "book_id",
+        "not_null": true,
+        "schema": "shelf",
+        "table": "loans"
+      },
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "member_id",
+      "source": {
+        "column": "member_id",
+        "not_null": true,
+        "schema": "shelf",
+        "table": "loans"
+      },
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "borrowed_on",
+      "source": {
+        "column": "borrowed_on",
+        "not_null": true,
+        "schema": "shelf",
+        "table": "loans"
+      },
+      "type": {
+        "type": "date"
+      }
+    },
+    {
+      "name": "due_on",
+      "source": {
+        "column": "due_on",
+        "not_null": true,
+        "schema": "shelf",
+        "table": "loans"
+      },
+      "type": {
+        "type": "date"
+      }
+    },
+    {
+      "name": "returned_on",
+      "source": {
+        "column": "returned_on",
+        "not_null": false,
+        "schema": "shelf",
+        "table": "loans"
+      },
+      "type": {
+        "type": "date"
+      }
+    }
+  ],
+  "materialized": false,
+  "params": [],
+  "primary_key": [
+    "id"
+  ],
+  "sql": "select id, book_id, member_id, borrowed_on, due_on, returned_on\nfrom shelf.loans"
+}

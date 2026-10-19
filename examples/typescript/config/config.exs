@@ -11,6 +11,20 @@ config :bookshelf,
   ecto_repos: [Bookshelf.Repo],
   generators: [timestamp_type: :utc_datetime]
 
+config :bookshelf, ash_domains: [Bookshelf.Library]
+
+config :ash, default_string_length_count: :codepoints
+
+config :ash, :custom_expressions, [Bookshelf.Expressions.DaysOverdue]
+
+config :ash_typescript,
+  manifest: Bookshelf.AshTypescriptManifest,
+  output_file: "assets/js/ash_rpc.ts",
+  run_endpoint: "/rpc/run",
+  validate_endpoint: "/rpc/validate",
+  input_field_formatter: :camel_case,
+  output_field_formatter: :camel_case
+
 # Configure the endpoint
 config :bookshelf, BookshelfWeb.Endpoint,
   url: [host: "localhost"],

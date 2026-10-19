@@ -1,0 +1,67 @@
+{
+  "columns": [
+    {
+      "name": "book_id",
+      "source": {
+        "column": "id",
+        "not_null": true,
+        "schema": "shelf",
+        "table": "books"
+      },
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "title",
+      "source": {
+        "column": "title",
+        "not_null": true,
+        "schema": "shelf",
+        "table": "books"
+      },
+      "type": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "loan_count",
+      "source": null,
+      "type": {
+        "type": "integer"
+      }
+    }
+  ],
+  "function": {
+    "arguments": [
+      {
+        "name": "since",
+        "type": "date"
+      }
+    ],
+    "returns": [
+      {
+        "name": "book_id",
+        "type": "uuid"
+      },
+      {
+        "name": "title",
+        "type": "text"
+      },
+      {
+        "name": "loan_count",
+        "type": "bigint"
+      }
+    ]
+  },
+  "materialized": false,
+  "params": [
+    {
+      "type": "date"
+    }
+  ],
+  "primary_key": [
+    "book_id"
+  ],
+  "sql": "select b.id as book_id, b.title, count(l.id) as loan_count\nfrom shelf.books b\nleft join shelf.loans l on l.book_id = b.id and l.borrowed_on >= $1\ngroup by b.id, b.title"
+}

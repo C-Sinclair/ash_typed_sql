@@ -1,0 +1,43 @@
+{
+  "columns": [
+    {
+      "name": "author_id",
+      "source": {
+        "column": "id",
+        "not_null": true,
+        "schema": "shelf",
+        "table": "authors"
+      },
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "book_count",
+      "source": null,
+      "type": {
+        "type": "integer"
+      }
+    },
+    {
+      "name": "loan_count",
+      "source": null,
+      "type": {
+        "type": "integer"
+      }
+    },
+    {
+      "name": "average_rating",
+      "source": null,
+      "type": {
+        "type": "decimal"
+      }
+    }
+  ],
+  "materialized": true,
+  "params": [],
+  "primary_key": [
+    "author_id"
+  ],
+  "sql": "select\n  a.id as author_id,\n  (select count(*) from shelf.books b where b.author_id = a.id) as book_count,\n  (select count(*) from shelf.loans l join shelf.books b on b.id = l.book_id where b.author_id = a.id) as loan_count,\n  (select avg(r.rating) from shelf.reviews r join shelf.books b on b.id = r.book_id where b.author_id = a.id) as average_rating\nfrom shelf.authors a"
+}
