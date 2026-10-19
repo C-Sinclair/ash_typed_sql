@@ -35,8 +35,8 @@ AshTypedSql turns SQL that Postgres can describe into typed Ash constructs. One 
 
 ## Postgres constraints
 
-- Extended-protocol `Parse` + `Describe` returns `ParameterDescription` and `RowDescription` without executing. Unverified in this repo.
-- `RowDescription` gives each column's source table OID and attribute number, or zero for computed columns. Unverified in this repo.
+- Extended-protocol `Parse` + `Describe` returns `ParameterDescription` and `RowDescription` without executing. Verified by `AshTypedSql.Codegen.DescribeTest`.
+- `RowDescription` gives each column's source table OID and attribute number, or zero for computed columns. Verified by `AshTypedSql.Codegen.DescribeTest`.
 - `pg_attribute.attnotnull` gives column nullability for tables. It is always false for views.
 - `EXPLAIN (GENERIC_PLAN)` needs Postgres 16 ([ADR-005](../decisions/ADR-005-classify-statements-with-explain.md)).
 
@@ -69,4 +69,4 @@ Runtime execution uses the resource's `AshPostgres` repo. Connection pooling, te
 
 ## Open risks
 
-- Postgrex may not expose `RowDescription` table OIDs through public API. Closing it: read `Postgrex.Query` after a prepare in the spike.
+- Postgrex does not expose `RowDescription` table OIDs through public API ([FF-191026](../friction/FF-191026-postgrex-drops-row-description-origin.md)). `AshTypedSql.Codegen.Describe` decodes the message itself over a socket opened by the private `Postgrex.Protocol.connect/1`. A Postgrex release that changes that function breaks codegen, not compiled code.

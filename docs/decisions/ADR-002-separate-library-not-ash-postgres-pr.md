@@ -1,7 +1,7 @@
 # ADR-002 — Build a separate library, not a PR to `ash_postgres`
 
 **Status:** accepted
-**Date:** 2026-10-18
+**Date:** 2026-10-19
 **Deciders:** Conor Sinclair
 **Relates to:** [DD-001](../designs/DD-001-system-overview.md)
 
@@ -37,7 +37,7 @@ Option B. Nothing in the design needs private `ash_postgres` internals, and the 
 ## Consequences
 
 - **What it rules out.** Changes to `ash_postgres` internals. A missing hook becomes an upstream PR, not a patch here.
-- **What it makes worse.** The OID-to-Ash-type mapping exists twice.
+- **What it makes worse.** The OID-to-Ash-type mapping exists twice. Codegen calls the private `Postgrex.Protocol.connect/1`, because no public Postgrex API returns result column origins ([FF-191026](../friction/FF-191026-postgrex-drops-row-description-origin.md)). Compiled code and `AshTypedSql.Run` use only public APIs.
 - **What stays open.** Moving upstream later. If the type-mapping duplication grows large, that is the signal to propose it.
 - **What now depends on it.** The package name, every module under `AshTypedSql`.
 
