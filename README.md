@@ -36,7 +36,9 @@ defmodule MyApp.Accounts.Customer do
 
   typed_sql do
     query :top_customers, "accounts/top_customers.sql" do
-      argument_names [:since, :limit]
+      argument :since
+      argument :limit, default: 10, constraints: [min: 1, max: 100]
+      validate compare(:limit, less_than_or_equal_to: 100)
     end
   end
 end
@@ -47,10 +49,13 @@ AshTypedSql generates the equivalent of:
 ```elixir
 action :top_customers, {:array, MyApp.Accounts.Customer.TopCustomersRow} do
   argument :since, :utc_datetime_usec, allow_nil?: false
-  argument :limit, :integer, allow_nil?: false
+  argument :limit, :integer, allow_nil?: false, default: 10, constraints: [min: 1, max: 100]
+  validate compare(:limit, less_than_or_equal_to: 100)
   run AshTypedSql.Run
 end
 ```
+
+Each `argument` binds the next positional parameter, so the first binds `$1`. `argument` is Ash's own action argument and takes the same options, except that the type is optional and `allow_nil?` defaults to `false`. An omitted type is the type Postgres reports for the parameter. A given type must have the same Postgres storage type, so `:ci_string` or an `Ash.Type.Enum` can narrow a `text` parameter, but `:integer` cannot. `allow_nil? true` binds `nil` as SQL `NULL`. Compilation refuses a parameter without an argument, an argument without a parameter, and a type Postgres stores differently. `validate` and `prepare` inside `query` go onto the generated action ([ADR-011](docs/decisions/ADR-011-query-arguments-are-ash-arguments-mapped-by-position.md)).
 
 `TopCustomersRow` is an `Ash.TypedStruct` with `id: :uuid`, `name: :string` and `lifetime_value: :decimal`. Each field's `allow_nil?` comes from the column's `NOT NULL` constraint where Postgres can trace the column back to a table. Computed columns such as `sum(...)` are nullable unless you say otherwise.
 
@@ -90,12 +95,12 @@ The `as` option opts in, with `:read`, `:create`, `:update` or `:destroy`. `mix 
 ```elixir
 query :set_total, "orders/set_total.sql" do
   # update orders set total = $2 where id = $1 returning *
-  argument_names [:id, :total]
+  argument :total
   as :update
 end
 ```
 
-In an `as :update` or `as :destroy` query, a parameter named after a primary key attribute takes its value from the record being changed, so `Ash.update(order, %{total: 10}, action: :set_total)` binds `$1` to `order.id`. Every primary key attribute needs such a parameter. The statement must return exactly one row. Zero rows is a stale record error, and more than one rolls the action back.
+In an `as :update` or `as :destroy` query, the primary key binds from the record being changed to the first parameters, so `Ash.update(order, %{total: 10}, action: :set_total)` binds `$1` to `order.id` and `$2` to `total`. Declared arguments bind the parameters after the key. The statement must return exactly one row. Zero rows is a stale record error, and more than one rolls the action back.
 
 ## Views
 
@@ -167,7 +172,7 @@ group by c.id
 ```elixir
 typed_view "views/customer_stats_since.sql" do
   primary_key [:customer_id]
-  argument_names [:since]
+  argument :since
 end
 ```
 

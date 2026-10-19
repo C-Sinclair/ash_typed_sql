@@ -2,8 +2,8 @@
 
 **Status:** built
 **Date:** 2026-10-19
-**Decisions:** [ADR-003](../decisions/ADR-003-describe-at-codegen-compile-from-snapshots.md), [ADR-004](../decisions/ADR-004-generic-actions-by-default.md), [ADR-005](../decisions/ADR-005-classify-statements-with-explain.md), [ADR-008](../decisions/ADR-008-bind-crud-opt-ins-to-the-record.md)
-**Lands in:** `AshTypedSql` (the `typed_sql` DSL section), `AshTypedSql.Run`, `AshTypedSql.Codegen.Query`, `AshTypedSql.Crud`, `AshTypedSql.ManualRead`, `AshTypedSql.ManualWrite`
+**Decisions:** [ADR-003](../decisions/ADR-003-describe-at-codegen-compile-from-snapshots.md), [ADR-004](../decisions/ADR-004-generic-actions-by-default.md), [ADR-005](../decisions/ADR-005-classify-statements-with-explain.md), [ADR-008](../decisions/ADR-008-bind-crud-opt-ins-to-the-record.md), [ADR-011](../decisions/ADR-011-query-arguments-are-ash-arguments-mapped-by-position.md)
+**Lands in:** `AshTypedSql` (the `typed_sql` DSL section), `AshTypedSql.Argument`, `AshTypedSql.Run`, `AshTypedSql.Codegen.Query`, `AshTypedSql.Crud`, `AshTypedSql.ManualRead`, `AshTypedSql.ManualWrite`
 
 ## What this is
 
@@ -11,22 +11,26 @@ Each `.sql` file declared with `query` in a resource's `typed_sql` section becom
 
 ## What this proves
 
-1. A query's arguments and row fields have the types Postgres reports.
+1. A query's arguments and row fields have the types Postgres reports, or a declared argument type with the same Postgres storage type.
 2. A row field is `allow_nil?: false` only when its source column is `NOT NULL`.
 3. A query that writes is classified by `kind` and `writes` without executing.
 4. An opt-in CRUD action is refused at codegen, and at compile time, when the snapshot contradicts it.
+5. A query whose declared arguments do not cover its parameters one to one is refused at compile time.
 
 ## Who uses it
 
 ```elixir
 typed_sql do
   query :top_customers, "accounts/top_customers.sql" do
-    argument_names [:since, :limit]
+    argument :since
+    argument :limit, :integer, default: 10, constraints: [min: 1, max: 100]
+    validate compare(:limit, less_than_or_equal_to: 100)
+    prepare MyApp.ScopeToTenant
   end
 end
 ```
 
-`argument_names` names the positional parameters, and defaults to `arg1..argN`. `type_overrides` maps an unmapped type by hand, keyed by Postgres type name. `AshTypedSql.Info.kind/2` and `AshTypedSql.Info.writes/2` expose the classification, because generic actions have no metadata field. `not_null` marks computed columns as non-nullable. `kind` overrides classification. `as :read | :create | :update | :destroy` opts in to a manual CRUD action.
+Each `argument` binds the next positional parameter, so the first binds `$1` ([ADR-011](../decisions/ADR-011-query-arguments-are-ash-arguments-mapped-by-position.md)). `argument` takes every option of Ash's action `argument`: `allow_nil?`, `default`, `constraints`, `sensitive?`, `description` and `public?`. The type is optional and defaults to the parameter's snapshot type. A given type must have the same Postgres storage type, so `:ci_string` or an `Ash.Type.Enum` narrows `text`. `allow_nil?` defaults to `false`, and `allow_nil? true` binds `nil` as SQL `NULL`. `validate` and `prepare` go onto the generated action. `as :create | :update | :destroy` take `validate` but refuse `prepare`, because Ash create, update and destroy actions have no preparations. `type_overrides` maps an unmapped type by hand, keyed by Postgres type name. `AshTypedSql.Info.kind/2` and `AshTypedSql.Info.writes/2` expose the classification, because generic actions have no metadata field. `not_null` marks computed columns as non-nullable. `kind` overrides classification. `as :read | :create | :update | :destroy` opts in to a manual CRUD action.
 
 ## Non-goals
 
@@ -54,10 +58,14 @@ end
 ```elixir
 action :top_customers, {:array, MyApp.Accounts.Customer.TopCustomersRow} do
   argument :since, :utc_datetime_usec, allow_nil?: false
-  argument :limit, :integer, allow_nil?: false
+  argument :limit, :integer, allow_nil?: false, default: 10, constraints: [min: 1, max: 100]
+  validate compare(:limit, less_than_or_equal_to: 100)
+  prepare MyApp.ScopeToTenant
   run AshTypedSql.Run
 end
 ```
+
+Compilation raises a `Spark.Error.DslError` that names the parameter without an argument, the argument without a parameter, or the argument whose type Postgres stores differently. When the `.sql` file has changed since its snapshot, the query is skipped with a warning until `mix ash.codegen` runs. Codegen refuses the same count mismatch before it writes a snapshot.
 
 `AshTypedSql.Run` executes the fixed SQL through the resource's repo and casts each row through the row type. The SQL text is stored in the snapshot, so a `.sql` file edited after codegen has no effect until `mix ash.codegen` runs again.
 
@@ -65,14 +73,14 @@ Opt-in CRUD conditions, checked by `AshTypedSql.Crud.check/3`. `kind` is the `ki
 
 - `as :read`: `kind` is `:read`, `writes` is empty, and the result columns all come from the resource's table and cover its primary key and every non-nullable attribute. Generates a manual read through `AshTypedSql.ManualRead` returning resource records. `Ash.Query` filters, sorts and pagination do not apply.
 - `as :create | :update | :destroy`: `kind` matches, `writes` is one `insert`, `update` or `delete` on the resource's table, the result columns all come from that table, and `RETURNING` covers every attribute. Generates a manual action through `AshTypedSql.ManualWrite` that returns the one `RETURNING` row as the record.
-- `as :update | :destroy` also need a parameter named after each primary key attribute in `argument_names`. Those parameters bind to the record the changeset acts on and are not arguments ([ADR-008](../decisions/ADR-008-bind-crud-opt-ins-to-the-record.md)).
+- `as :update | :destroy` bind the primary key from the record the changeset acts on to `$1..$k`, in primary key order. Those parameters are not arguments, and the declared arguments bind from `$k+1` on. An argument named after a key attribute is refused ([ADR-008](../decisions/ADR-008-bind-crud-opt-ins-to-the-record.md)).
 
 A result column from the resource's table that the resource declares no attribute for is dropped, as `ash_postgres` ignores undeclared table columns. Codegen raises before writing any snapshot when an opt-in is contradicted. Compilation raises a `Spark.Error.DslError` for the same conditions, unless the `.sql` file has changed since its snapshot, in which case the query is skipped with a warning until `mix ash.codegen` runs.
 
 ```elixir
 query :set_total, "orders/set_total.sql" do
   # update orders set total = $2 where id = $1 returning *
-  argument_names [:id, :total]
+  argument :total
   as :update
 end
 ```

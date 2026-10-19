@@ -2,7 +2,7 @@
 
 **Status:** built
 **Date:** 2026-10-19
-**Decisions:** [ADR-003](../decisions/ADR-003-describe-at-codegen-compile-from-snapshots.md), [ADR-007](../decisions/ADR-007-view-migrations-ask-postgres-whether-replace-works.md), [ADR-010](../decisions/ADR-010-parameterized-views-are-functions-read-through-a-cte.md)
+**Decisions:** [ADR-003](../decisions/ADR-003-describe-at-codegen-compile-from-snapshots.md), [ADR-007](../decisions/ADR-007-view-migrations-ask-postgres-whether-replace-works.md), [ADR-010](../decisions/ADR-010-parameterized-views-are-functions-read-through-a-cte.md), [ADR-011](../decisions/ADR-011-query-arguments-are-ash-arguments-mapped-by-position.md)
 **Lands in:** `AshTypedSql.View` (the `typed_view` entity), `AshTypedSql.Transformers.GenerateView`, `AshTypedSql.Codegen.View`, `AshTypedSql.View.Refresh`, `AshTypedSql.View.Arguments`
 
 ## What this is
@@ -26,7 +26,7 @@ typed_view "views/customer_stats.sql" do
 end
 ```
 
-`sql_dir`, `snapshot_dir` and `type_overrides` work as they do for `query`. A `SELECT` with `$1..$n` parameters makes a parameterized view, and `argument_names` names them as for `query`. The developer adds relationships by hand. A `belongs_to` on a view column needs `define_attribute? false`, because the column is already an attribute. `mix ash.codegen` writes the snapshot and the view migration.
+`sql_dir`, `snapshot_dir` and `type_overrides` work as they do for `query`. A `SELECT` with `$1..$n` parameters makes a parameterized view, and declares one `argument` per parameter as for `query`. The arguments become the read action's arguments, with their options. `typed_view` takes no `validate` or `prepare`. The developer adds relationships by hand. A `belongs_to` on a view column needs `define_attribute? false`, because the column is already an attribute. `mix ash.codegen` writes the snapshot and the view migration.
 
 ## Non-goals
 
@@ -48,7 +48,7 @@ end
 - One attribute per column, and the `primary_key` attributes marked as such.
 - A primary `:read` action, when the resource declares no read action.
 - For `materialized? true`: `CREATE MATERIALIZED VIEW`, a unique index named `<table>_primary_key_index` on `primary_key`, and a `:refresh` generic action that runs through `AshTypedSql.View.Refresh`.
-- For a parameterized view ([ADR-010](../decisions/ADR-010-parameterized-views-are-functions-read-through-a-cte.md)): a `CREATE FUNCTION "<table>"(...) RETURNS TABLE (...) LANGUAGE sql STABLE` migration whose body is the SQL file, and a non-primary `:read` action with one required argument per parameter. Its `modify_query` adds `WITH "<table>" AS (select * from "<table>"($1, ...))`, which the `FROM "<table>"` built by `ash_postgres` then reads. A relationship into the view sets `read_action :read`.
+- For a parameterized view ([ADR-010](../decisions/ADR-010-parameterized-views-are-functions-read-through-a-cte.md)): a `CREATE FUNCTION "<table>"(...) RETURNS TABLE (...) LANGUAGE sql STABLE` migration whose body is the SQL file, and a non-primary `:read` action with the declared arguments. The function's argument names are the declared argument names. Its `modify_query` adds `WITH "<table>" AS (select * from "<table>"($1, ...))`, which the `FROM "<table>"` built by `ash_postgres` then reads. A relationship into the view sets `read_action :read`.
 
 ## Trade-offs
 
