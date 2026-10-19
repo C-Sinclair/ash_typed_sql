@@ -21,5 +21,7 @@ config :ash, default_string_length_count: :codepoints
 
 config :ash, :custom_expressions, [
   AshTypedSql.Test.Expressions.NameScore,
-  AshTypedSql.Test.Expressions.IsVip
+  AshTypedSql.Test.Expressions.IsVip,
+  AshTypedSql.Test.Expressions.Half,
+  AshTypedSql.Test.Expressions.LabelOf
 ]

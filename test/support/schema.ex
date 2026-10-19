@@ -32,7 +32,14 @@ defmodule AshTypedSql.Test.Schema do
     "create or replace function name_score(a text, b text) returns float8 immutable language sql as $$ select length(a)::float8 / greatest(length(b), 1) $$",
     "create or replace function is_vip(name text) returns boolean immutable language sql as $$ select name like 'VIP %' $$",
     "create sequence if not exists bump_seq",
-    "create or replace function bump_counter() returns bigint volatile language sql as $$ select nextval('bump_seq') $$"
+    "create or replace function bump_counter() returns bigint volatile language sql as $$ select nextval('bump_seq') $$",
+    "create or replace function half(x numeric) returns numeric immutable language sql as $$ select x / 2 $$",
+    "create or replace function half(x float8) returns float8 immutable language sql as $$ select x / 2 $$",
+    "create or replace function label_of(n int4) returns text immutable language sql as $$ select 'int ' || n $$",
+    "create or replace function label_of(n int8) returns text immutable language sql as $$ select 'bigint ' || n $$",
+    "create or replace function label_of(a text, b text) returns text immutable language sql as $$ select a || '/' || b $$",
+    "create or replace function label_of(a anyelement, b anyelement, c anyelement) returns text immutable language sql as $$ select 'any' $$",
+    "create or replace function label_of(variadic parts text[]) returns text immutable language sql as $$ select array_to_string(parts, ',') $$"
   ]
 
   def config do

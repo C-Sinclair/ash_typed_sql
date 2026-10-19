@@ -4,7 +4,7 @@ defmodule AshTypedSql.FunctionsTest do
   require Ash.Expr
   require Ash.Query
 
-  alias AshTypedSql.Test.Expressions.{IsVip, NameScore}
+  alias AshTypedSql.Test.Expressions.{Half, IsVip, LabelOf, NameScore}
   alias AshTypedSql.Test.{Member, Repo}
 
   setup do
@@ -64,6 +64,40 @@ defmodule AshTypedSql.FunctionsTest do
 
     assert scores == %{"Grace" => 5 / 3, "VIP Ada" => 7 / 3, "Al" => 2 / 3}
     assert is_float(scores["Al"])
+  end
+
+  defp calc(expression, type) do
+    [member] =
+      Member
+      |> Ash.Query.filter(name == "Al")
+      |> Ash.Query.calculate(:value, type, expression)
+      |> Ash.read!()
+
+    member.calculations.value
+  end
+
+  describe "overloads" do
+    test "each overload is one argument list, longest first" do
+      assert LabelOf.arguments() == [[:string, :string], [:integer]]
+    end
+
+    test "decimal comes before float" do
+      assert Half.arguments() == [[:decimal], [:float]]
+    end
+
+    test "a call runs the overload whose argument list fits" do
+      assert calc(Ash.Expr.expr(label_of(name, "x")), :string) == "Al/x"
+      assert calc(Ash.Expr.expr(label_of(5)), :string) == "bigint 5"
+    end
+
+    test "numeric and float8 overloads keep their own return types" do
+      assert Decimal.equal?(calc(Ash.Expr.expr(half(^Decimal.new("3"))), :decimal), "1.5")
+      assert calc(Ash.Expr.expr(half(type(^3.0, :float))), :float) == 1.5
+    end
+
+    test "a float literal casts to the decimal overload" do
+      assert Decimal.equal?(calc(Ash.Expr.expr(half(3.0)), :decimal), "1.5")
+    end
   end
 
   @tag :tmp_dir

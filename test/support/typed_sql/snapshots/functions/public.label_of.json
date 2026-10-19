@@ -1,0 +1,58 @@
+{
+  "name": "label_of",
+  "overloads": [
+    {
+      "arguments": [
+        {
+          "pg_type": "text",
+          "type": {
+            "type": "string"
+          }
+        },
+        {
+          "pg_type": "text",
+          "type": {
+            "type": "string"
+          }
+        }
+      ],
+      "returns": {
+        "type": "string"
+      },
+      "signature": "label_of(a text, b text)",
+      "strict": false,
+      "volatility": "immutable"
+    },
+    {
+      "arguments": [
+        {
+          "pg_type": "bigint",
+          "type": {
+            "type": "integer"
+          }
+        }
+      ],
+      "returns": {
+        "type": "string"
+      },
+      "signature": "label_of(n bigint)",
+      "strict": false,
+      "volatility": "immutable"
+    }
+  ],
+  "schema": "public",
+  "skipped": [
+    {
+      "reason": "VARIADIC arguments have no single type",
+      "signature": "label_of(VARIADIC parts text[])"
+    },
+    {
+      "reason": "anyelement has no single type",
+      "signature": "label_of(a anyelement, b anyelement, c anyelement)"
+    },
+    {
+      "reason": "it takes the same Ash types as label_of(n bigint)",
+      "signature": "label_of(n integer)"
+    }
+  ]
+}

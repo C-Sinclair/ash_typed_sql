@@ -11,3 +11,4 @@ Start from [`FF-000-TEMPLATE.md`](FF-000-TEMPLATE.md). Naming is `FF-DDMMYY-keba
 | Entry | Upstream | What |
 |---|---|---|
 | [FF-191026-postgrex-drops-row-description-origin](FF-191026-postgrex-drops-row-description-origin.md) | reportable | `Postgrex.Query` drops each result column's table OID and attnum |
+| [FF-191026-ash-custom-expression-arguments-truncate](FF-191026-ash-custom-expression-arguments-truncate.md) | reportable | Ash matches a custom expression argument list of a different length, and casts the arguments to it |

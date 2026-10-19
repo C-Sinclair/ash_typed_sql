@@ -1,0 +1,39 @@
+{
+  "name": "half",
+  "overloads": [
+    {
+      "arguments": [
+        {
+          "pg_type": "numeric",
+          "type": {
+            "type": "decimal"
+          }
+        }
+      ],
+      "returns": {
+        "type": "decimal"
+      },
+      "signature": "half(x numeric)",
+      "strict": false,
+      "volatility": "immutable"
+    },
+    {
+      "arguments": [
+        {
+          "pg_type": "double precision",
+          "type": {
+            "type": "float"
+          }
+        }
+      ],
+      "returns": {
+        "type": "float"
+      },
+      "signature": "half(x double precision)",
+      "strict": false,
+      "volatility": "immutable"
+    }
+  ],
+  "schema": "public",
+  "skipped": []
+}

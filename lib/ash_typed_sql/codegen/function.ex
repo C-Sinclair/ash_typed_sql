@@ -86,26 +86,62 @@ defmodule AshTypedSql.Codegen.Function do
 
     Enum.each(skipped, &Mix.shell().info("#{label}: skipping #{&1.signature}, #{&1.skip}"))
 
+    {overloads, duplicates} =
+      usable
+      |> Enum.map(fn row ->
+        %{
+          "signature" => row.signature,
+          "arguments" =>
+            row.argument_oids
+            |> Enum.zip(row.argument_pg_types)
+            |> Enum.map(fn {oid, pg_type} ->
+              %{"type" => type(conn, oid, label), "pg_type" => pg_type}
+            end),
+          "returns" => type(conn, row.return_oid, label),
+          "strict" => row.strict,
+          "volatility" => row.volatility
+        }
+      end)
+      |> Enum.sort_by(
+        &{-length(&1["arguments"]), Enum.map(&1["arguments"], fn a -> rank(a["type"]) end)}
+      )
+      |> dedupe()
+
+    Enum.each(
+      duplicates,
+      &Mix.shell().info("#{label}: skipping #{&1["signature"]}, #{&1["reason"]}")
+    )
+
     %{
       "schema" => function.schema,
       "name" => to_string(function.name),
-      "overloads" =>
-        Enum.map(usable, fn row ->
-          %{
-            "signature" => row.signature,
-            "arguments" =>
-              row.argument_oids
-              |> Enum.zip(row.argument_pg_types)
-              |> Enum.map(fn {oid, pg_type} ->
-                %{"type" => type(conn, oid, label), "pg_type" => pg_type}
-              end),
-            "returns" => type(conn, row.return_oid, label),
-            "strict" => row.strict,
-            "volatility" => row.volatility
-          }
-        end),
-      "skipped" => Enum.map(skipped, &%{"signature" => &1.signature, "reason" => &1.skip})
+      "overloads" => overloads,
+      "skipped" =>
+        Enum.map(skipped, &%{"signature" => &1.signature, "reason" => &1.skip}) ++ duplicates
     }
+  end
+
+  # Ash casts call arguments against each argument list in turn and takes the first that fits, so longer lists go first and `decimal` goes before the types a decimal would lose precision in.
+  defp rank(%{"type" => "decimal"}), do: 0
+  defp rank(%{"type" => "float"}), do: 2
+  defp rank(_), do: 1
+
+  defp dedupe(overloads) do
+    {kept, duplicates} =
+      Enum.reduce(overloads, {[], []}, fn overload, {kept, duplicates} ->
+        types = Enum.map(overload["arguments"], & &1["type"])
+
+        case Enum.find(kept, &(Enum.map(&1["arguments"], fn a -> a["type"] end) == types)) do
+          nil ->
+            {[overload | kept], duplicates}
+
+          first ->
+            reason = "it takes the same Ash types as #{first["signature"]}"
+            {kept, [%{"signature" => overload["signature"], "reason" => reason} | duplicates]}
+        end
+      end)
+
+    {Enum.reverse(kept), Enum.reverse(duplicates)}
   end
 
   defp overloads(conn, function) do

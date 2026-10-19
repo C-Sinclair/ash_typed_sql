@@ -4,6 +4,11 @@ defmodule AshTypedSql.Codegen.FunctionTest do
   alias AshTypedSql.Codegen.Function
   alias AshTypedSql.Test.{Member, Repo, Schema}
 
+  setup do
+    Mix.shell(Mix.Shell.Process)
+    on_exit(fn -> Mix.shell(Mix.Shell.IO) end)
+  end
+
   defp snapshot(function) do
     {:ok, conn} = Postgrex.start_link(Schema.config())
 
@@ -54,5 +59,25 @@ defmodule AshTypedSql.Codegen.FunctionTest do
 
   test "refuses a function that does not exist" do
     assert_raise Mix.Error, ~r/no function public.missing/, fn -> snapshot(name: :missing) end
+  end
+
+  test "skips polymorphic, VARIADIC and same-typed overloads and names them" do
+    snapshot = snapshot(name: :label_of)
+
+    assert Enum.map(snapshot["skipped"], & &1["signature"]) == [
+             "label_of(VARIADIC parts text[])",
+             "label_of(a anyelement, b anyelement, c anyelement)",
+             "label_of(n integer)"
+           ]
+
+    assert_received {:mix_shell, :info, [variadic]}
+
+    assert variadic =~
+             "skipping label_of(VARIADIC parts text[]), VARIADIC arguments have no single type"
+
+    assert_received {:mix_shell, :info, [polymorphic]}
+
+    assert polymorphic =~
+             "skipping label_of(a anyelement, b anyelement, c anyelement), anyelement has no single type"
   end
 end

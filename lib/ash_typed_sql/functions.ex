@@ -60,9 +60,15 @@ defmodule AshTypedSql.Functions do
 
   @doc false
   def overload(argument_lists, args) do
-    Enum.find_index(
-      argument_lists,
-      &(length(&1) == length(args) and Ash.Query.Function.try_cast_arguments(&1, args) != nil)
-    )
+    argument_lists
+    |> Enum.with_index()
+    |> Enum.find_value(fn {types, index} ->
+      with true <- length(types) == length(args),
+           cast when is_list(cast) <- Ash.Query.Function.try_cast_arguments(types, args) do
+        {index, cast}
+      else
+        _ -> nil
+      end
+    end)
   end
 end

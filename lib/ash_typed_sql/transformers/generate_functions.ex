@@ -107,8 +107,7 @@ defmodule AshTypedSql.Transformers.GenerateFunctions do
         returns = Macro.escape(ash_type.(overload["returns"]))
 
         quote do
-          unquote(index) ->
-            unquote(vars) = args
+          {unquote(index), unquote(vars)} ->
             {:ok, expr(type(fragment(unquote(sql), unquote_splicing(pins)), unquote(returns)))}
         end
       end)

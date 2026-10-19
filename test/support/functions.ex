@@ -27,6 +27,8 @@ defmodule AshTypedSql.Test.Member do
 
     function(:name_score)
     function(:is_vip)
+    function(:half)
+    function(:label_of)
   end
 
   attributes do
