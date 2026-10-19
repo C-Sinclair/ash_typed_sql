@@ -14,3 +14,7 @@ Start from [`FF-000-TEMPLATE.md`](FF-000-TEMPLATE.md). Naming is `FF-DDMMYY-keba
 | [FF-191026-ash-custom-expression-arguments-truncate](FF-191026-ash-custom-expression-arguments-truncate.md) | reportable | Ash matches a custom expression argument list of a different length, and casts the arguments to it |
 | [FF-191026-ecto-migrator-needs-two-sandbox-connections](FF-191026-ecto-migrator-needs-two-sandbox-connections.md) | none | `Ecto.Migrator` deadlocks on a sandboxed repo, because it needs a second connection |
 | [FF-191026-ecto-fragment-source-has-no-struct-select](FF-191026-ecto-fragment-source-has-no-struct-select.md) | none | Ecto refuses a fragment `FROM` under the `struct` select that `ash_sql` builds |
+| [FF-191026-view-relationships-block-first-codegen](FF-191026-view-relationships-block-first-codegen.md) | ours | A view resource with relationships fails to compile before its first snapshot, so the first `mix ash.codegen` cannot run |
+| [FF-191026-function-and-view-migrations-share-a-version](FF-191026-function-and-view-migrations-share-a-version.md) | ours | Function and view codegen stamp migrations from the same clock, and Ecto refuses the duplicate version |
+| [FF-191026-crud-opt-in-needs-declared-attributes](FF-191026-crud-opt-in-needs-declared-attributes.md) | ours | CRUD opt-ins need declared attributes, and the writes check compares table names without schema |
+| [FF-191026-no-formatter-export](FF-191026-no-formatter-export.md) | ours | No exported formatter config, and a duplicate `connection_config/1` warns on every compile |
