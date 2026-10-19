@@ -1,7 +1,8 @@
 # ADR-005 — Classify statements with `EXPLAIN (GENERIC_PLAN)`, and require Postgres 16
 
 **Status:** proposed
-**Date:** 2026-10-19
+**Date:** 2026-10-18
+**Last changed:** 2026-10-19 — Evidence and consequences updated from the foundation spike
 **Deciders:** Conor Sinclair
 **Relates to:** [DD-002](../designs/DD-002-query-actions.md)
 

@@ -1,7 +1,8 @@
 # ADR-003 — Describe SQL at codegen time, and compile from checked-in snapshots
 
 **Status:** accepted
-**Date:** 2026-10-19
+**Date:** 2026-10-18
+**Last changed:** 2026-10-19 — Evidence and consequences updated from the foundation spike
 **Deciders:** Conor Sinclair
 **Relates to:** [DD-001](../designs/DD-001-system-overview.md), `AshTypedSql.Codegen`
 
