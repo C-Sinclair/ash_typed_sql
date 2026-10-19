@@ -1,0 +1,45 @@
+{
+  "columns": [
+    {
+      "name": "id",
+      "source": {
+        "column": "id",
+        "not_null": true,
+        "schema": "public",
+        "table": "audit_log"
+      },
+      "type": {
+        "type": "integer"
+      }
+    },
+    {
+      "name": "message",
+      "source": {
+        "column": "message",
+        "not_null": true,
+        "schema": "public",
+        "table": "audit_log"
+      },
+      "type": {
+        "type": "string"
+      }
+    }
+  ],
+  "kind": "mixed",
+  "params": [
+    {
+      "type": "integer"
+    }
+  ],
+  "sql": "with deleted as (\n  delete from orders where id = $1 returning id\n)\ninsert into audit_log (message)\nselect 'deleted order ' || id from deleted\nreturning id, message\n",
+  "writes": [
+    {
+      "operation": "insert",
+      "table": "audit_log"
+    },
+    {
+      "operation": "delete",
+      "table": "orders"
+    }
+  ]
+}

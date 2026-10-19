@@ -16,7 +16,7 @@ defmodule AshTypedSql.TypeMap do
     701 => "float",
     1043 => "string",
     1082 => "date",
-    1114 => "naive_datetime_usec",
+    1114 => "naive_datetime",
     1184 => "utc_datetime_usec",
     1700 => "decimal",
     2950 => "uuid",
@@ -33,7 +33,7 @@ defmodule AshTypedSql.TypeMap do
     "map" => :map,
     "float" => :float,
     "date" => :date,
-    "naive_datetime_usec" => :naive_datetime_usec,
+    "naive_datetime" => :naive_datetime,
     "utc_datetime_usec" => :utc_datetime_usec,
     "decimal" => :decimal,
     "uuid" => :uuid

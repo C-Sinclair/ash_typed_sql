@@ -1,0 +1,98 @@
+{
+  "columns": [
+    {
+      "name": "id",
+      "source": {
+        "column": "id",
+        "not_null": true,
+        "schema": "public",
+        "table": "customers"
+      },
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "name",
+      "source": {
+        "column": "name",
+        "not_null": true,
+        "schema": "public",
+        "table": "customers"
+      },
+      "type": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "active",
+      "source": {
+        "column": "active",
+        "not_null": true,
+        "schema": "public",
+        "table": "customers"
+      },
+      "type": {
+        "type": "boolean"
+      }
+    },
+    {
+      "name": "settings",
+      "source": {
+        "column": "settings",
+        "not_null": false,
+        "schema": "public",
+        "table": "customers"
+      },
+      "type": {
+        "type": "map"
+      }
+    },
+    {
+      "name": "born_on",
+      "source": {
+        "column": "born_on",
+        "not_null": false,
+        "schema": "public",
+        "table": "customers"
+      },
+      "type": {
+        "type": "date"
+      }
+    },
+    {
+      "name": "tier",
+      "source": {
+        "column": "tier",
+        "not_null": true,
+        "schema": "public",
+        "table": "customers"
+      },
+      "type": {
+        "name": "customer_tier",
+        "schema": "public",
+        "type": "enum",
+        "values": [
+          "bronze",
+          "silver",
+          "gold"
+        ]
+      }
+    }
+  ],
+  "kind": "read",
+  "params": [
+    {
+      "name": "customer_tier",
+      "schema": "public",
+      "type": "enum",
+      "values": [
+        "bronze",
+        "silver",
+        "gold"
+      ]
+    }
+  ],
+  "sql": "select id, name, active, settings, born_on, tier\nfrom customers\nwhere tier = $1\norder by name\n",
+  "writes": []
+}

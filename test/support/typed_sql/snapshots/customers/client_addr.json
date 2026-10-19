@@ -1,0 +1,16 @@
+{
+  "columns": [
+    {
+      "name": "addr",
+      "source": null,
+      "type": {
+        "name": "inet",
+        "type": "override"
+      }
+    }
+  ],
+  "kind": "read",
+  "params": [],
+  "sql": "select '10.0.0.1'::inet as addr\n",
+  "writes": []
+}

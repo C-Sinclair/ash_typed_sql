@@ -1,7 +1,7 @@
 # ADR-003 — Describe SQL at codegen time, and compile from checked-in snapshots
 
 **Status:** accepted
-**Date:** 2026-10-18
+**Date:** 2026-10-19
 **Deciders:** Conor Sinclair
 **Relates to:** [DD-001](../designs/DD-001-system-overview.md), `AshTypedSql.Codegen`
 
@@ -40,4 +40,5 @@ Option B. It is the only option that keeps compilation database-free and still t
 
 ## Evidence
 
-- `mix ash.codegen` runs extension codegen steps. Not verified: the exact callback an extension implements to register. Check `Ash.Resource` extension docs before building.
+- `Mix.Tasks.Ash.Codegen` (ash 3.36.1) calls `codegen/1` on every Spark extension module that exports it, found by `Ash.Info.defined_extensions/1` across the project and every dependency that depends on `ash` or `spark`. `AshTypedSql` exports `codegen/1`, so no registration is needed. `--check` is honoured by raising `Ash.Error.Framework.PendingCodegen`, tested in `AshTypedSql.Codegen.QueryTest`.
+- `mix ash.codegen` compiles the project before running codegen. A stale or unreadable snapshot therefore must not fail compilation, or codegen could never rewrite it. The transformer warns and skips that query instead.

@@ -1,0 +1,92 @@
+{
+  "columns": [
+    {
+      "name": "id",
+      "source": {
+        "column": "id",
+        "not_null": true,
+        "schema": "public",
+        "table": "customers"
+      },
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "name",
+      "source": {
+        "column": "name",
+        "not_null": true,
+        "schema": "public",
+        "table": "customers"
+      },
+      "type": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "email",
+      "source": {
+        "column": "email",
+        "not_null": false,
+        "schema": "public",
+        "table": "customers"
+      },
+      "type": {
+        "type": "ci_string"
+      }
+    },
+    {
+      "name": "tier",
+      "source": {
+        "column": "tier",
+        "not_null": true,
+        "schema": "public",
+        "table": "customers"
+      },
+      "type": {
+        "name": "customer_tier",
+        "schema": "public",
+        "type": "enum",
+        "values": [
+          "bronze",
+          "silver",
+          "gold"
+        ]
+      }
+    },
+    {
+      "name": "tags",
+      "source": {
+        "column": "tags",
+        "not_null": true,
+        "schema": "public",
+        "table": "customers"
+      },
+      "type": {
+        "of": {
+          "type": "string"
+        },
+        "type": "array"
+      }
+    },
+    {
+      "name": "lifetime_value",
+      "source": null,
+      "type": {
+        "type": "decimal"
+      }
+    }
+  ],
+  "kind": "read",
+  "params": [
+    {
+      "type": "utc_datetime_usec"
+    },
+    {
+      "type": "integer"
+    }
+  ],
+  "sql": "select c.id, c.name, c.email, c.tier, c.tags, sum(o.total) as lifetime_value\nfrom customers c\njoin orders o on o.customer_id = c.id\nwhere o.inserted_at > $1\ngroup by c.id\norder by lifetime_value desc\nlimit $2\n",
+  "writes": []
+}

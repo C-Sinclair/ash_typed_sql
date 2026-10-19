@@ -29,7 +29,7 @@ defmodule AshTypedSql.TypeMapTest do
     assert ash(conn, "bool") == :boolean
     assert ash(conn, "uuid") == :uuid
     assert ash(conn, "date") == :date
-    assert ash(conn, "timestamp") == :naive_datetime_usec
+    assert ash(conn, "timestamp") == :naive_datetime
     assert ash(conn, "timestamptz") == :utc_datetime_usec
     assert ash(conn, "json") == :map
     assert ash(conn, "jsonb") == :map

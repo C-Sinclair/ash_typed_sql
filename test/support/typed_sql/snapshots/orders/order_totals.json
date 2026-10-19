@@ -1,0 +1,70 @@
+{
+  "columns": [
+    {
+      "name": "id",
+      "source": {
+        "column": "id",
+        "not_null": true,
+        "schema": "public",
+        "table": "orders"
+      },
+      "type": {
+        "type": "integer"
+      }
+    },
+    {
+      "name": "total",
+      "source": {
+        "column": "total",
+        "not_null": true,
+        "schema": "public",
+        "table": "orders"
+      },
+      "type": {
+        "type": "decimal"
+      }
+    },
+    {
+      "name": "discount",
+      "source": {
+        "column": "discount",
+        "not_null": false,
+        "schema": "public",
+        "table": "orders"
+      },
+      "type": {
+        "type": "float"
+      }
+    },
+    {
+      "name": "shipped_at",
+      "source": {
+        "column": "shipped_at",
+        "not_null": false,
+        "schema": "public",
+        "table": "orders"
+      },
+      "type": {
+        "type": "naive_datetime"
+      }
+    },
+    {
+      "name": "doubled",
+      "source": null,
+      "type": {
+        "type": "decimal"
+      }
+    },
+    {
+      "name": "tripled",
+      "source": null,
+      "type": {
+        "type": "decimal"
+      }
+    }
+  ],
+  "kind": "read",
+  "params": [],
+  "sql": "select id, total, discount, shipped_at, total * 2 as doubled, total * 3 as tripled\nfrom orders\norder by id\n",
+  "writes": []
+}

@@ -1,0 +1,92 @@
+{
+  "columns": [
+    {
+      "name": "id",
+      "source": {
+        "column": "id",
+        "not_null": true,
+        "schema": "public",
+        "table": "orders"
+      },
+      "type": {
+        "type": "integer"
+      }
+    },
+    {
+      "name": "customer_id",
+      "source": {
+        "column": "customer_id",
+        "not_null": true,
+        "schema": "public",
+        "table": "orders"
+      },
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "total",
+      "source": {
+        "column": "total",
+        "not_null": true,
+        "schema": "public",
+        "table": "orders"
+      },
+      "type": {
+        "type": "decimal"
+      }
+    },
+    {
+      "name": "discount",
+      "source": {
+        "column": "discount",
+        "not_null": false,
+        "schema": "public",
+        "table": "orders"
+      },
+      "type": {
+        "type": "float"
+      }
+    },
+    {
+      "name": "inserted_at",
+      "source": {
+        "column": "inserted_at",
+        "not_null": true,
+        "schema": "public",
+        "table": "orders"
+      },
+      "type": {
+        "type": "utc_datetime_usec"
+      }
+    },
+    {
+      "name": "shipped_at",
+      "source": {
+        "column": "shipped_at",
+        "not_null": false,
+        "schema": "public",
+        "table": "orders"
+      },
+      "type": {
+        "type": "naive_datetime"
+      }
+    }
+  ],
+  "kind": "create",
+  "params": [
+    {
+      "type": "uuid"
+    },
+    {
+      "type": "decimal"
+    }
+  ],
+  "sql": "insert into orders (customer_id, total)\nvalues ($1, $2)\nreturning *\n",
+  "writes": [
+    {
+      "operation": "insert",
+      "table": "orders"
+    }
+  ]
+}
