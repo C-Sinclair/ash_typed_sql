@@ -1,0 +1,20 @@
+{
+  "columns": [
+    {
+      "name": "name",
+      "source": {
+        "column": "name",
+        "not_null": true,
+        "schema": "public",
+        "table": "customers"
+      },
+      "type": {
+        "type": "string"
+      }
+    }
+  ],
+  "kind": "read",
+  "params": [],
+  "sql": "select name from customers\n",
+  "writes": []
+}

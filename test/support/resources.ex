@@ -36,6 +36,8 @@ defmodule AshTypedSql.Test.Customer do
     query :client_addr, "customers/client_addr.sql" do
       type_overrides(inet: :term)
     end
+
+    query(:names, "customers/names.sql")
   end
 
   attributes do
@@ -72,9 +74,39 @@ defmodule AshTypedSql.Test.Order do
     query :delete_and_log, "orders/delete_and_log.sql" do
       argument_names([:order_id])
     end
+
+    query :for_customer, "orders/for_customer.sql" do
+      argument_names([:customer_id])
+      as(:read)
+    end
+
+    query :place_order, "orders/place_order.sql" do
+      argument_names([:customer_id, :total])
+      as(:create)
+    end
+
+    query :set_total, "orders/set_total.sql" do
+      argument_names([:id, :total])
+      as(:update)
+    end
+
+    query :set_total_or_customer, "orders/set_total_or_customer.sql" do
+      argument_names([:id, :total, :customer_id])
+      as(:update)
+    end
+
+    query :remove_order, "orders/remove_order.sql" do
+      argument_names([:id])
+      as(:destroy)
+    end
   end
 
   attributes do
     integer_primary_key(:id)
+    attribute(:customer_id, :uuid, allow_nil?: false, public?: true)
+    attribute(:total, :decimal, allow_nil?: false, public?: true)
+    attribute(:discount, :float, public?: true)
+    attribute(:inserted_at, :utc_datetime_usec, allow_nil?: false, public?: true)
+    attribute(:shipped_at, :naive_datetime, public?: true)
   end
 end

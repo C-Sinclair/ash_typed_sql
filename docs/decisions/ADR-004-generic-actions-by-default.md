@@ -2,6 +2,7 @@
 
 **Status:** proposed
 **Date:** 2026-10-18
+**Last changed:** 2026-10-19 — Evidence: manual `update` and `destroy` returning the changed row verified
 **Deciders:** Conor Sinclair
 **Relates to:** [DD-002](../designs/DD-002-query-actions.md)
 
@@ -36,8 +37,9 @@ Option C. A generic action promises only what describe can prove. Opt-in moves t
 - **What it rules out.** A query silently becoming an `update`.
 - **What it makes worse.** One more option per query for developers who want records.
 - **What stays open.** Whether bulk SQL writes should map to Ash bulk actions.
-- **What now depends on it.** DD-002.
+- **What now depends on it.** DD-002, and the binding rules in [ADR-008](ADR-008-bind-crud-opt-ins-to-the-record.md).
 
 ## Evidence
 
-Not verified: manual `update` and `destroy` actions accepting a SQL statement that returns the changed row. A spike against `Ash.Resource.ManualUpdate` closes this.
+- Manual `update` and `destroy` actions run a SQL statement and return its `RETURNING` row as the record: `test/ash_typed_sql/crud_test.exs`, describes `as :update` and `as :destroy` (Ash 3.36.1). How the statement's parameters bind to the record is [ADR-008](ADR-008-bind-crud-opt-ins-to-the-record.md).
+- Codegen and compilation refuse an opt-in the snapshot contradicts: `test/ash_typed_sql/crud_test.exs`, describes `refusals at compile time` and `refusals at codegen`.

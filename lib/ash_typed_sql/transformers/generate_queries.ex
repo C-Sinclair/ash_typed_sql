@@ -1,9 +1,9 @@
 defmodule AshTypedSql.Transformers.GenerateQueries do
-  @moduledoc "Generates a generic action and a row type for every `query`, from its snapshot."
+  @moduledoc "Generates an action for every `query` from its snapshot: a generic action with a row type, or the manual action `as` opts in to."
 
   use Spark.Dsl.Transformer
 
-  alias AshTypedSql.{Info, TypeMap}
+  alias AshTypedSql.{Crud, Info, TypeMap}
   alias Spark.Dsl.Transformer
   alias Spark.Error.DslError
 
@@ -21,6 +21,7 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
       case File.read(path) do
         {:ok, json} ->
           case generate_or_skip(dsl, resource, query, path, json, enums) do
+            :stale -> {:cont, {:ok, dsl, enums}}
             {:ok, dsl, enums} -> {:cont, {:ok, dsl, enums}}
             {:error, error} -> {:halt, {:error, error}}
           end
@@ -51,22 +52,55 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
       {:ok, dsl, enums}
   end
 
-  defp generate(dsl, resource, query, snapshot, enums) do
-    argument_names = argument_names(query, length(snapshot["params"]))
+  defp generate(dsl, resource, %{as: as} = query, snapshot, enums) when not is_nil(as) do
+    sql_path = Info.sql_path(dsl, query.path)
+
+    dsl =
+      Transformer.eval(dsl, [path: sql_path], quote(do: @external_resource(unquote(sql_path))))
+
+    # The opt-in is only checked against a snapshot of the current SQL, so a stale snapshot never blocks the compile that `mix ash.codegen` needs.
+    if File.read(sql_path) == {:ok, snapshot["sql"]} do
+      case Crud.check(dsl, query, snapshot) do
+        {:ok, fit} ->
+          generate(dsl, resource, query, snapshot, enums, fit)
+
+        {:error, message} ->
+          {:error,
+           DslError.exception(
+             module: resource,
+             path: [:typed_sql, :query, query.name, :as],
+             message: "#{query.path} cannot be `as #{inspect(as)}`: #{message}"
+           )}
+      end
+    else
+      IO.warn(
+        "#{inspect(resource)} query #{inspect(query.name)} skipped, because #{sql_path} has changed since its snapshot. Run `mix ash.codegen`."
+      )
+
+      :stale
+    end
+  end
+
+  defp generate(dsl, resource, query, snapshot, enums),
+    do: generate(dsl, resource, query, snapshot, enums, nil)
+
+  defp generate(dsl, resource, query, snapshot, enums, fit) do
+    argument_names = AshTypedSql.Query.argument_names(query, length(snapshot["params"]))
 
     with :ok <- check_arguments(resource, query, argument_names, snapshot),
          {:ok, enums} <- define_enums(resource, snapshot, enums) do
       ash_type = &ash_type(resource, query, &1)
-      row = Module.concat(resource, Macro.camelize("#{query.name}_row"))
-      define_row(row, query, snapshot, ash_type)
+      type = query.as || :action
+      record_params = if fit, do: fit.record_params, else: []
 
       arguments =
         argument_names
         |> Enum.zip(snapshot["params"])
-        |> Enum.map(fn {name, type} ->
-          Transformer.build_entity!(Ash.Resource.Dsl, [:actions, :action], :argument,
+        |> Enum.reject(fn {name, _type} -> name in record_params end)
+        |> Enum.map(fn {name, type_description} ->
+          Transformer.build_entity!(Ash.Resource.Dsl, [:actions, type], :argument,
             name: name,
-            type: ash_type.(type),
+            type: ash_type.(type_description),
             allow_nil?: false
           )
         end)
@@ -75,15 +109,10 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
         Transformer.build_entity!(
           Ash.Resource.Dsl,
           [:actions],
-          :action,
+          type,
           Enum.reject(
-            [
-              name: query.name,
-              description: query.description,
-              returns: {:array, row},
-              arguments: arguments,
-              run: {AshTypedSql.Run, query: query.name}
-            ],
+            [name: query.name, description: query.description, arguments: arguments] ++
+              action_options(resource, query, snapshot, ash_type),
             &is_nil(elem(&1, 1))
           )
         )
@@ -99,7 +128,10 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
           arguments: argument_names,
           columns: Enum.map(snapshot["columns"], &String.to_atom(&1["name"])),
           kind: kind,
-          writes: writes
+          writes: writes,
+          as: query.as,
+          fields: fit && fit.fields,
+          record_params: record_params
         })
 
       dsl =
@@ -111,8 +143,17 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
     end
   end
 
-  defp argument_names(%{argument_names: []}, count), do: Enum.map(1..count//1, &:"arg#{&1}")
-  defp argument_names(%{argument_names: names}, _count), do: names
+  defp action_options(resource, %{as: nil} = query, snapshot, ash_type) do
+    row = Module.concat(resource, Macro.camelize("#{query.name}_row"))
+    define_row(row, query, snapshot, ash_type)
+    [returns: {:array, row}, run: {AshTypedSql.Run, query: query.name}]
+  end
+
+  defp action_options(_resource, %{as: :read} = query, _snapshot, _ash_type),
+    do: [manual: {AshTypedSql.ManualRead, query: query.name}]
+
+  defp action_options(_resource, query, _snapshot, _ash_type),
+    do: [accept: [], manual: {AshTypedSql.ManualWrite, query: query.name}]
 
   defp check_arguments(resource, query, names, snapshot) do
     if length(names) == length(snapshot["params"]) do

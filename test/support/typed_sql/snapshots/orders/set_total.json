@@ -1,0 +1,92 @@
+{
+  "columns": [
+    {
+      "name": "id",
+      "source": {
+        "column": "id",
+        "not_null": true,
+        "schema": "public",
+        "table": "orders"
+      },
+      "type": {
+        "type": "integer"
+      }
+    },
+    {
+      "name": "customer_id",
+      "source": {
+        "column": "customer_id",
+        "not_null": true,
+        "schema": "public",
+        "table": "orders"
+      },
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "total",
+      "source": {
+        "column": "total",
+        "not_null": true,
+        "schema": "public",
+        "table": "orders"
+      },
+      "type": {
+        "type": "decimal"
+      }
+    },
+    {
+      "name": "discount",
+      "source": {
+        "column": "discount",
+        "not_null": false,
+        "schema": "public",
+        "table": "orders"
+      },
+      "type": {
+        "type": "float"
+      }
+    },
+    {
+      "name": "inserted_at",
+      "source": {
+        "column": "inserted_at",
+        "not_null": true,
+        "schema": "public",
+        "table": "orders"
+      },
+      "type": {
+        "type": "utc_datetime_usec"
+      }
+    },
+    {
+      "name": "shipped_at",
+      "source": {
+        "column": "shipped_at",
+        "not_null": false,
+        "schema": "public",
+        "table": "orders"
+      },
+      "type": {
+        "type": "naive_datetime"
+      }
+    }
+  ],
+  "kind": "update",
+  "params": [
+    {
+      "type": "integer"
+    },
+    {
+      "type": "decimal"
+    }
+  ],
+  "sql": "update orders set total = $2\nwhere id = $1\nreturning *\n",
+  "writes": [
+    {
+      "operation": "update",
+      "table": "orders"
+    }
+  ]
+}

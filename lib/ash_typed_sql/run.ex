@@ -22,11 +22,18 @@ defmodule AshTypedSql.Run do
   end
 
   defp params(input, names) do
-    Enum.reduce_while(names, {:ok, []}, fn name, {:ok, acc} ->
+    names
+    |> Enum.map(fn name ->
       argument = Enum.find(input.action.arguments, &(&1.name == name))
-      value = Ash.ActionInput.get_argument(input, name)
+      {name, argument.type, argument.constraints, Ash.ActionInput.get_argument(input, name)}
+    end)
+    |> dump()
+  end
 
-      case Ash.Type.dump_to_native(argument.type, value, argument.constraints) do
+  @doc false
+  def dump(values) do
+    Enum.reduce_while(values, {:ok, []}, fn {name, type, constraints, value}, {:ok, acc} ->
+      case Ash.Type.dump_to_native(type, value, constraints) do
         {:ok, dumped} -> {:cont, {:ok, [dumped | acc]}}
         :error -> {:halt, {:error, "could not dump argument #{inspect(name)}"}}
         {:error, error} -> {:halt, {:error, error}}
