@@ -6,8 +6,8 @@ defmodule Library.LoansDueBy do
     extensions: [AshTypedSql.View]
 
   typed_view "views/loans_due_by.sql" do
-    primary_key([:loan_id])
-    argument_names([:as_of])
+    primary_key [:loan_id]
+    argument_names [:as_of]
   end
 
   postgres do

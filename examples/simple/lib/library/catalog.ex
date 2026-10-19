@@ -6,16 +6,16 @@ defmodule Library.Catalog do
     extensions: [AshTypedSql.View, AshTypedSql]
 
   typed_view "views/catalog.sql" do
-    primary_key([:id])
+    primary_key [:id]
   end
 
   typed_sql do
     query :add_book, "catalog/add_book.sql" do
-      argument_names([:author_name, :title, :published_on])
+      argument_names [:author_name, :title, :published_on]
     end
 
     query :add_review, "catalog/add_review.sql" do
-      argument_names([:book_id, :rating, :body])
+      argument_names [:book_id, :rating, :body]
     end
   end
 

@@ -49,10 +49,10 @@ defmodule AshTypedSql.Test.Views.CustomerStats do
     extensions: [AshTypedSql.View]
 
   typed_view "views/customer_stats.sql" do
-    sql_dir("test/support/typed_sql")
-    snapshot_dir("test/support/typed_sql/snapshots")
-    primary_key([:customer_id])
-    not_null([:order_count])
+    sql_dir "test/support/typed_sql"
+    snapshot_dir "test/support/typed_sql/snapshots"
+    primary_key [:customer_id]
+    not_null [:order_count]
   end
 
   postgres do
@@ -75,10 +75,10 @@ defmodule AshTypedSql.Test.Views.CustomerTiers do
     extensions: [AshTypedSql.View]
 
   typed_view "views/customer_tiers.sql" do
-    sql_dir("test/support/typed_sql")
-    snapshot_dir("test/support/typed_sql/snapshots")
-    primary_key([:customer_id])
-    materialized?(true)
+    sql_dir "test/support/typed_sql"
+    snapshot_dir "test/support/typed_sql/snapshots"
+    primary_key [:customer_id]
+    materialized? true
   end
 
   postgres do
@@ -94,11 +94,11 @@ defmodule AshTypedSql.Test.Views.CustomerStatsSince do
     extensions: [AshTypedSql.View]
 
   typed_view "views/customer_stats_since.sql" do
-    sql_dir("test/support/typed_sql")
-    snapshot_dir("test/support/typed_sql/snapshots")
-    primary_key([:customer_id])
-    not_null([:order_count])
-    argument_names([:since])
+    sql_dir "test/support/typed_sql"
+    snapshot_dir "test/support/typed_sql/snapshots"
+    primary_key [:customer_id]
+    not_null [:order_count]
+    argument_names [:since]
   end
 
   postgres do

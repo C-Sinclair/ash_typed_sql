@@ -6,9 +6,9 @@ defmodule Library.BookStats do
     extensions: [AshTypedSql.View]
 
   typed_view "views/book_stats.sql" do
-    primary_key([:book_id])
-    not_null([:review_count])
-    materialized?(true)
+    primary_key [:book_id]
+    not_null [:review_count]
+    materialized? true
   end
 
   postgres do

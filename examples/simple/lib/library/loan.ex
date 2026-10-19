@@ -7,39 +7,39 @@ defmodule Library.Loan do
 
   # The CRUD opt-ins check their columns against the resource's attributes, so a typed_view over the table generates them. See docs/friction/FF-191026-crud-opt-in-needs-declared-attributes.md.
   typed_view "tables/loans.sql" do
-    primary_key([:id])
+    primary_key [:id]
   end
 
   typed_sql do
     query :top_borrowers, "loans/top_borrowers.sql" do
-      argument_names([:limit])
-      not_null([:loan_count])
+      argument_names [:limit]
+      not_null [:loan_count]
     end
 
     query :loans_for, "loans/loans_for.sql" do
-      argument_names([:borrower])
-      as(:read)
+      argument_names [:borrower]
+      as :read
     end
 
     query :lend_book, "loans/lend_book.sql" do
-      argument_names([:book_id, :borrower, :due_on])
-      as(:create)
+      argument_names [:book_id, :borrower, :due_on]
+      as :create
     end
 
     query :return_book, "loans/return_book.sql" do
-      argument_names([:id])
-      as(:update)
+      argument_names [:id]
+      as :update
     end
 
     query :cancel_loan, "loans/cancel_loan.sql" do
-      argument_names([:id])
-      as(:destroy)
+      argument_names [:id]
+      as :destroy
     end
   end
 
   typed_sql_functions do
-    module_prefix(Library.Expressions)
-    function(:days_overdue, sql: "functions/days_overdue.sql")
+    module_prefix Library.Expressions
+    function :days_overdue, sql: "functions/days_overdue.sql"
   end
 
   postgres do

@@ -22,22 +22,22 @@ defmodule AshTypedSql.Test.Customer do
   end
 
   typed_sql do
-    sql_dir("test/support/typed_sql")
-    snapshot_dir("test/support/typed_sql/snapshots")
+    sql_dir "test/support/typed_sql"
+    snapshot_dir "test/support/typed_sql/snapshots"
 
     query :top_customers, "customers/top_customers.sql" do
-      argument_names([:since, :limit])
+      argument_names [:since, :limit]
     end
 
     query :by_tier, "customers/by_tier.sql" do
-      argument_names([:tier])
+      argument_names [:tier]
     end
 
     query :client_addr, "customers/client_addr.sql" do
-      type_overrides(inet: :term)
+      type_overrides inet: :term
     end
 
-    query(:names, "customers/names.sql")
+    query :names, "customers/names.sql"
   end
 
   attributes do
@@ -60,44 +60,44 @@ defmodule AshTypedSql.Test.Order do
   end
 
   typed_sql do
-    sql_dir("test/support/typed_sql")
-    snapshot_dir("test/support/typed_sql/snapshots")
+    sql_dir "test/support/typed_sql"
+    snapshot_dir "test/support/typed_sql/snapshots"
 
     query :order_totals, "orders/order_totals.sql" do
-      not_null([:doubled])
+      not_null [:doubled]
     end
 
     query :create_order, "orders/create_order.sql" do
-      argument_names([:customer_id, :total])
+      argument_names [:customer_id, :total]
     end
 
     query :delete_and_log, "orders/delete_and_log.sql" do
-      argument_names([:order_id])
+      argument_names [:order_id]
     end
 
     query :for_customer, "orders/for_customer.sql" do
-      argument_names([:customer_id])
-      as(:read)
+      argument_names [:customer_id]
+      as :read
     end
 
     query :place_order, "orders/place_order.sql" do
-      argument_names([:customer_id, :total])
-      as(:create)
+      argument_names [:customer_id, :total]
+      as :create
     end
 
     query :set_total, "orders/set_total.sql" do
-      argument_names([:id, :total])
-      as(:update)
+      argument_names [:id, :total]
+      as :update
     end
 
     query :set_total_or_customer, "orders/set_total_or_customer.sql" do
-      argument_names([:id, :total, :customer_id])
-      as(:update)
+      argument_names [:id, :total, :customer_id]
+      as :update
     end
 
     query :remove_order, "orders/remove_order.sql" do
-      argument_names([:id])
-      as(:destroy)
+      argument_names [:id]
+      as :destroy
     end
   end
 

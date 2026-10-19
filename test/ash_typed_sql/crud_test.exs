@@ -340,8 +340,8 @@ defmodule AshTypedSql.CrudTest do
       end
 
       typed_sql do
-        sql_dir(#{inspect(sql_dir)})
-        snapshot_dir(#{inspect(snapshot_dir)})
+        sql_dir #{inspect(sql_dir)}
+        snapshot_dir #{inspect(snapshot_dir)}
         #{query}
       end
 

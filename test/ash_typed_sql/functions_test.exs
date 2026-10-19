@@ -141,8 +141,8 @@ defmodule AshTypedSql.FunctionsTest do
         end
 
         typed_sql_functions do
-          snapshot_dir(dir)
-          function(:bump_counter)
+          snapshot_dir dir
+          function :bump_counter
         end
 
         attributes do

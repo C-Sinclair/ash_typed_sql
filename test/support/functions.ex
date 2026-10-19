@@ -21,15 +21,15 @@ defmodule AshTypedSql.Test.Member do
   end
 
   typed_sql_functions do
-    module_prefix(AshTypedSql.Test.Expressions)
-    sql_dir("test/support/typed_sql")
-    snapshot_dir("test/support/typed_sql/snapshots")
+    module_prefix AshTypedSql.Test.Expressions
+    sql_dir "test/support/typed_sql"
+    snapshot_dir "test/support/typed_sql/snapshots"
 
-    function(:name_score)
-    function(:is_vip)
-    function(:half)
-    function(:label_of)
-    function(:business_days_between, sql: "functions/business_days_between.sql")
+    function :name_score
+    function :is_vip
+    function :half
+    function :label_of
+    function :business_days_between, sql: "functions/business_days_between.sql"
   end
 
   attributes do
