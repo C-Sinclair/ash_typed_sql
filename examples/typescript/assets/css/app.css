@@ -1,0 +1,8 @@
+body { font-family: system-ui, sans-serif; max-width: 60rem; margin: 2rem auto; padding: 0 1rem; color: #222; }
+section { border-top: 1px solid #ddd; padding: 1rem 0; }
+.feature { color: #666; font-size: 0.9rem; margin-top: -0.5rem; }
+table { border-collapse: collapse; margin: 0.5rem 0; width: 100%; }
+th, td { text-align: left; padding: 0.25rem 0.5rem; border-bottom: 1px solid #eee; }
+form, label { display: flex; gap: 0.5rem; margin: 0.5rem 0; align-items: center; }
+button { margin-right: 0.25rem; }
+.error { color: #b00; }

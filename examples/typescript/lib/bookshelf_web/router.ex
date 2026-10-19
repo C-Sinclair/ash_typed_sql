@@ -4,14 +4,15 @@ defmodule BookshelfWeb.Router do
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
-    plug :fetch_live_flash
     plug :put_root_layout, html: {BookshelfWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
   end
 
-  pipeline :api do
+  pipeline :rpc do
     plug :accepts, ["json"]
+    plug :fetch_session
+    plug :protect_from_forgery
   end
 
   scope "/", BookshelfWeb do
@@ -20,8 +21,10 @@ defmodule BookshelfWeb.Router do
     get "/", PageController, :home
   end
 
-  # Other scopes may use custom stacks.
-  # scope "/api", BookshelfWeb do
-  #   pipe_through :api
-  # end
+  scope "/rpc", BookshelfWeb do
+    pipe_through :rpc
+
+    post "/run", RpcController, :run
+    post "/validate", RpcController, :validate
+  end
 end

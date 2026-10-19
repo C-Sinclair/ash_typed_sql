@@ -1,8 +1,9 @@
 defmodule BookshelfWeb.PageControllerTest do
   use BookshelfWeb.ConnCase
 
-  test "GET /", %{conn: conn} do
-    conn = get(conn, ~p"/")
-    assert html_response(conn, 200) =~ "Peace of mind from prototype to production"
+  test "GET / serves the TypeScript front end", %{conn: conn} do
+    html = conn |> get(~p"/") |> html_response(200)
+    assert html =~ ~s(id="app")
+    assert html =~ "/assets/js/app.js"
   end
 end

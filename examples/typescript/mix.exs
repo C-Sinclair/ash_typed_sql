@@ -73,8 +73,14 @@ defmodule Bookshelf.MixProject do
       setup: ["deps.get", "ecto.setup", "assets.setup", "assets.build"],
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
-      test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
-      "assets.setup": ["esbuild.install --if-missing"],
+      test: [
+        "ecto.create --quiet",
+        "ecto.migrate --quiet",
+        "ash.codegen --check",
+        "cmd npm --prefix assets run typecheck",
+        "test"
+      ],
+      "assets.setup": ["esbuild.install --if-missing", "cmd npm --prefix assets install"],
       "assets.build": ["compile", "esbuild bookshelf"],
       "assets.deploy": [
         "esbuild bookshelf --minify",
