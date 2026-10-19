@@ -1,0 +1,23 @@
+{
+  "name": "is_vip",
+  "overloads": [
+    {
+      "arguments": [
+        {
+          "pg_type": "text",
+          "type": {
+            "type": "string"
+          }
+        }
+      ],
+      "returns": {
+        "type": "boolean"
+      },
+      "signature": "is_vip(name text)",
+      "strict": false,
+      "volatility": "immutable"
+    }
+  ],
+  "schema": "public",
+  "skipped": []
+}

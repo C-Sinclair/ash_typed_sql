@@ -28,7 +28,11 @@ defmodule AshTypedSql.Test.Schema do
       shipped_at timestamp
     )
     """,
-    "create table audit_log (id bigserial primary key, message text not null)"
+    "create table audit_log (id bigserial primary key, message text not null)",
+    "create or replace function name_score(a text, b text) returns float8 immutable language sql as $$ select length(a)::float8 / greatest(length(b), 1) $$",
+    "create or replace function is_vip(name text) returns boolean immutable language sql as $$ select name like 'VIP %' $$",
+    "create sequence if not exists bump_seq",
+    "create or replace function bump_counter() returns bigint volatile language sql as $$ select nextval('bump_seq') $$"
   ]
 
   def config do

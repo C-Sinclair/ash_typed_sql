@@ -1,0 +1,29 @@
+{
+  "name": "name_score",
+  "overloads": [
+    {
+      "arguments": [
+        {
+          "pg_type": "text",
+          "type": {
+            "type": "string"
+          }
+        },
+        {
+          "pg_type": "text",
+          "type": {
+            "type": "string"
+          }
+        }
+      ],
+      "returns": {
+        "type": "float"
+      },
+      "signature": "name_score(a text, b text)",
+      "strict": false,
+      "volatility": "immutable"
+    }
+  ],
+  "schema": "public",
+  "skipped": []
+}

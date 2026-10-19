@@ -44,6 +44,11 @@ defmodule AshTypedSql.Codegen.Query do
       |> Enum.flat_map(fn {repo, resources} -> snapshots(repo.config(), resources) end)
       |> Enum.reject(fn {path, contents} -> File.read(path) == {:ok, contents} end)
 
+    apply_pending(pending, opts)
+  end
+
+  @doc "Writes `{path, contents}` pairs, or raises or prints them under `--check` or `--dry-run`."
+  def apply_pending(pending, opts) do
     cond do
       pending == [] ->
         :ok
@@ -63,9 +68,12 @@ defmodule AshTypedSql.Codegen.Query do
     end
   end
 
+  @doc "Keeps the Postgrex connection options of a repo config."
+  def connection_config(config), do: Keyword.take(config, @connection_keys)
+
   @doc "Returns `{snapshot_path, json}` for every query on `resources`, described through a connection built from `config`."
   def snapshots(config, resources) do
-    config = Keyword.take(config, @connection_keys)
+    config = connection_config(config)
     {:ok, conn} = Postgrex.start_link(config)
     {:ok, describe_conn} = Describe.connect(config)
 

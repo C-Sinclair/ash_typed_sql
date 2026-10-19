@@ -1,6 +1,6 @@
 # DD-004 — Functions as custom expressions
 
-**Status:** draft
+**Status:** building
 **Date:** 2026-10-19
 **Decisions:** [ADR-003](../decisions/ADR-003-describe-at-codegen-compile-from-snapshots.md)
 **Lands in:** `AshTypedSql.Functions` (the `typed_sql_functions` DSL section), `AshTypedSql.Codegen.Function`
