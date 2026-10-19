@@ -1,0 +1,30 @@
+{
+  "name": "days_overdue",
+  "overloads": [
+    {
+      "arguments": [
+        {
+          "pg_type": "date",
+          "type": {
+            "type": "date"
+          }
+        },
+        {
+          "pg_type": "date",
+          "type": {
+            "type": "date"
+          }
+        }
+      ],
+      "returns": {
+        "type": "integer"
+      },
+      "signature": "days_overdue(due_on date, returned_on date)",
+      "strict": false,
+      "volatility": "stable"
+    }
+  ],
+  "schema": "public",
+  "skipped": [],
+  "sql": "create or replace function days_overdue(due_on date, returned_on date)\nreturns integer\nstable\nlanguage sql\nas $$\n  select greatest(coalesce(returned_on, current_date) - due_on, 0)\n$$\n"
+}

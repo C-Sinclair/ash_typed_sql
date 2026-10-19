@@ -1,0 +1,62 @@
+{
+  "columns": [
+    {
+      "name": "id",
+      "source": {
+        "column": "id",
+        "not_null": true,
+        "schema": "shelf",
+        "table": "books"
+      },
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "title",
+      "source": {
+        "column": "title",
+        "not_null": true,
+        "schema": "shelf",
+        "table": "books"
+      },
+      "type": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "author_name",
+      "source": {
+        "column": "name",
+        "not_null": true,
+        "schema": "shelf",
+        "table": "authors"
+      },
+      "type": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "average_rating",
+      "source": null,
+      "type": {
+        "type": "decimal"
+      }
+    },
+    {
+      "name": "review_count",
+      "source": null,
+      "type": {
+        "type": "integer"
+      }
+    }
+  ],
+  "kind": "read",
+  "params": [
+    {
+      "type": "integer"
+    }
+  ],
+  "sql": "select b.id, b.title, a.name as author_name, avg(r.rating) as average_rating, count(r.id) as review_count\nfrom shelf.books b\njoin shelf.authors a on a.id = b.author_id\nleft join shelf.reviews r on r.book_id = b.id\ngroup by b.id, b.title, a.name\norder by average_rating desc nulls last, b.title\nlimit $1\n",
+  "writes": []
+}

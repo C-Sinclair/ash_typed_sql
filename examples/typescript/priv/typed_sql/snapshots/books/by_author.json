@@ -1,0 +1,72 @@
+{
+  "columns": [
+    {
+      "name": "id",
+      "source": {
+        "column": "id",
+        "not_null": false,
+        "schema": "public",
+        "table": "books"
+      },
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "author_id",
+      "source": {
+        "column": "author_id",
+        "not_null": false,
+        "schema": "public",
+        "table": "books"
+      },
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "title",
+      "source": {
+        "column": "title",
+        "not_null": false,
+        "schema": "public",
+        "table": "books"
+      },
+      "type": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "published_on",
+      "source": {
+        "column": "published_on",
+        "not_null": false,
+        "schema": "public",
+        "table": "books"
+      },
+      "type": {
+        "type": "date"
+      }
+    },
+    {
+      "name": "copies",
+      "source": {
+        "column": "copies",
+        "not_null": false,
+        "schema": "public",
+        "table": "books"
+      },
+      "type": {
+        "type": "integer"
+      }
+    }
+  ],
+  "kind": "read",
+  "params": [
+    {
+      "type": "uuid"
+    }
+  ],
+  "sql": "select id, author_id, title, published_on, copies\nfrom books\nwhere author_id = $1\norder by published_on nulls last, title\n",
+  "writes": []
+}

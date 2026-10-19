@@ -1,0 +1,86 @@
+{
+  "columns": [
+    {
+      "name": "id",
+      "source": {
+        "column": "id",
+        "not_null": false,
+        "schema": "public",
+        "table": "books"
+      },
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "author_id",
+      "source": {
+        "column": "author_id",
+        "not_null": false,
+        "schema": "public",
+        "table": "books"
+      },
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "title",
+      "source": {
+        "column": "title",
+        "not_null": false,
+        "schema": "public",
+        "table": "books"
+      },
+      "type": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "published_on",
+      "source": {
+        "column": "published_on",
+        "not_null": false,
+        "schema": "public",
+        "table": "books"
+      },
+      "type": {
+        "type": "date"
+      }
+    },
+    {
+      "name": "copies",
+      "source": {
+        "column": "copies",
+        "not_null": false,
+        "schema": "public",
+        "table": "books"
+      },
+      "type": {
+        "type": "integer"
+      }
+    }
+  ],
+  "kind": "create",
+  "params": [
+    {
+      "type": "uuid"
+    },
+    {
+      "type": "string"
+    },
+    {
+      "type": "date"
+    },
+    {
+      "type": "integer"
+    }
+  ],
+  "sql": "insert into books (author_id, title, published_on, copies)\nvalues ($1, $2, $3, $4)\nreturning id, author_id, title, published_on, copies\n",
+  "writes": [
+    {
+      "operation": "insert",
+      "table": "books"
+    }
+  ]
+}

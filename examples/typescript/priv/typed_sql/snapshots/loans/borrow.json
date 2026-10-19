@@ -1,0 +1,83 @@
+{
+  "columns": [
+    {
+      "name": "id",
+      "source": {
+        "column": "id",
+        "not_null": true,
+        "schema": "shelf",
+        "table": "loans"
+      },
+      "type": {
+        "type": "integer"
+      }
+    },
+    {
+      "name": "book_id",
+      "source": {
+        "column": "book_id",
+        "not_null": true,
+        "schema": "shelf",
+        "table": "loans"
+      },
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "member_id",
+      "source": {
+        "column": "member_id",
+        "not_null": true,
+        "schema": "shelf",
+        "table": "loans"
+      },
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "borrowed_on",
+      "source": {
+        "column": "borrowed_on",
+        "not_null": true,
+        "schema": "shelf",
+        "table": "loans"
+      },
+      "type": {
+        "type": "date"
+      }
+    },
+    {
+      "name": "due_on",
+      "source": {
+        "column": "due_on",
+        "not_null": true,
+        "schema": "shelf",
+        "table": "loans"
+      },
+      "type": {
+        "type": "date"
+      }
+    }
+  ],
+  "kind": "create",
+  "params": [
+    {
+      "type": "uuid"
+    },
+    {
+      "type": "uuid"
+    },
+    {
+      "type": "integer"
+    }
+  ],
+  "sql": "insert into shelf.loans (book_id, member_id, due_on)\nvalues ($1, $2, current_date + $3::integer)\nreturning id, book_id, member_id, borrowed_on, due_on\n",
+  "writes": [
+    {
+      "operation": "insert",
+      "table": "loans"
+    }
+  ]
+}

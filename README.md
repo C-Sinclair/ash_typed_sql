@@ -264,7 +264,7 @@ end
 ## Examples
 
 - [`examples/simple`](examples/simple): a bookshelf app with no web layer that uses every feature through generated code interfaces.
-- [`examples/typescript`](examples/typescript): an `ash_typescript` example.
+- [`examples/typescript`](examples/typescript): a Phoenix app that exposes every feature through ash_typescript RPC to a TypeScript front end
 
 ## Design
 
