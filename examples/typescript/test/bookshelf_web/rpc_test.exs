@@ -81,6 +81,20 @@ defmodule BookshelfWeb.RpcTest do
     assert Enum.map(titles, & &1["title"]) == ["Kindred", "Parable of the Sower"]
   end
 
+  test "add_book binds a null publishedOn and defaults copies", %{conn: conn} do
+    assert %{"publishedOn" => nil, "copies" => 1} =
+             rpc!(conn, "add_book", %{
+               "input" => %{"authorId" => @butler, "title" => "Fledgling", "publishedOn" => nil},
+               "fields" => ["publishedOn", "copies"]
+             })
+
+    assert %{"success" => false} =
+             rpc(conn, "add_book", %{
+               "input" => %{"authorId" => @butler, "title" => "Wild Seed", "copies" => 0},
+               "fields" => ["id"]
+             })
+  end
+
   test "generic write queries borrow and return a book", %{conn: conn} do
     [loan] =
       rpc!(conn, "borrow_book", %{

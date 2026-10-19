@@ -11,11 +11,15 @@ defmodule Library.Catalog do
 
   typed_sql do
     query :add_book, "catalog/add_book.sql" do
-      argument_names [:author_name, :title, :published_on]
+      argument :author_name
+      argument :title
+      argument :published_on
     end
 
     query :add_review, "catalog/add_review.sql" do
-      argument_names [:book_id, :rating, :body]
+      argument :book_id
+      argument :rating, constraints: [min: 1, max: 5]
+      argument :body, allow_nil?: true
     end
   end
 

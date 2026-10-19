@@ -10,27 +10,30 @@ defmodule Bookshelf.Library.Book do
 
   typed_sql do
     query :top_rated, "books/top_rated.sql" do
-      argument_names [:limit]
+      argument :limit, default: 5, constraints: [min: 1, max: 50]
       not_null [:review_count]
     end
 
     query :by_author, "books/by_author.sql" do
-      argument_names [:author_id]
+      argument :author_id
       as :read
     end
 
     query :add_book, "books/add_book.sql" do
-      argument_names [:author_id, :title, :published_on, :copies]
+      argument :author_id
+      argument :title
+      argument :published_on, allow_nil?: true
+      argument :copies, default: 1, constraints: [min: 1]
       as :create
     end
 
+    # An update or destroy binds the primary key from the record to $1, so `id` is not an argument.
     query :retitle, "books/retitle.sql" do
-      argument_names [:id, :title]
+      argument :title
       as :update
     end
 
     query :withdraw, "books/withdraw.sql" do
-      argument_names [:id]
       as :destroy
     end
   end

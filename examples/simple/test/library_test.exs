@@ -19,6 +19,19 @@ defmodule LibraryTest do
              Library.add_review!(book_id, 4, "Good.")
   end
 
+  test "add_review takes a nil body, which binds SQL NULL", %{book_id: book_id} do
+    assert [%Library.Catalog.AddReviewRow{}] = Library.add_review!(book_id, 4, nil)
+
+    assert %{rows: [[nil]]} =
+             Library.Repo.query!("select body from reviews where book_id = $1", [
+               Ecto.UUID.dump!(book_id)
+             ])
+  end
+
+  test "add_review refuses a rating outside its constraints", %{book_id: book_id} do
+    assert {:error, %Ash.Error.Invalid{}} = Library.add_review(book_id, 6, "Too good.")
+  end
+
   test "book_stats changes only after refresh", %{book_id: book_id} do
     Library.add_review!(book_id, 4, "Good.")
     assert Library.get_book!(book_id, load: [:stats]).stats == nil

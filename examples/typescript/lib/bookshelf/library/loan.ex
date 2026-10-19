@@ -10,11 +10,13 @@ defmodule Bookshelf.Library.Loan do
 
   typed_sql do
     query :borrow, "loans/borrow.sql" do
-      argument_names [:book_id, :member_id, :days]
+      argument :book_id
+      argument :member_id
+      argument :days, constraints: [min: 1]
     end
 
     query :return_loan, "loans/return_loan.sql" do
-      argument_names [:id]
+      argument :id
     end
   end
 

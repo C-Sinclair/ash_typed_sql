@@ -7,7 +7,7 @@ defmodule Library.LoansDueBy do
 
   typed_view "views/loans_due_by.sql" do
     primary_key [:loan_id]
-    argument_names [:as_of]
+    argument :as_of
   end
 
   postgres do

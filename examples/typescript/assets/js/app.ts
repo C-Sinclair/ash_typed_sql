@@ -106,7 +106,7 @@ async function addBookForm(): Promise<HTMLElement> {
     event.preventDefault();
     void (async () => {
       const created = await addBook({
-        input: { authorId: select.value, title: title.value, publishedOn: publishedOn.value, copies: 1 },
+        input: { authorId: select.value, title: title.value, publishedOn: publishedOn.value || null },
         fields: ["id", "title"],
         headers,
       });
