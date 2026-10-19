@@ -261,6 +261,11 @@ def deps do
 end
 ```
 
+## Examples
+
+- [`examples/simple`](examples/simple): a bookshelf app with no web layer that uses every feature through generated code interfaces.
+- [`examples/typescript`](examples/typescript): an `ash_typescript` example.
+
 ## Design
 
 Design docs and decision records live in [`docs/`](docs/designs/INDEX.md).
