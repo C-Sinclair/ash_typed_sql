@@ -180,7 +180,13 @@ defmodule AshTypedSql.CrudTest do
       assert_refused(
         "customers",
         "uuid_primary_key(:id)",
-        ~s{query :q, "customers/top_customers.sql", as: :read, argument_names: [:since, :limit]},
+        """
+        query :q, "customers/top_customers.sql" do
+          as :read
+          argument :since
+          argument :limit
+        end
+        """,
         ~r/result columns lifetime_value do not come from public.customers/
       )
     end
@@ -207,7 +213,12 @@ defmodule AshTypedSql.CrudTest do
       assert_refused(
         "customers",
         "uuid_primary_key(:id)\nattribute(:email, :ci_string, allow_nil?: false)",
-        ~s{query :q, "customers/by_tier.sql", as: :read, argument_names: [:tier]},
+        """
+        query :q, "customers/by_tier.sql" do
+          as :read
+          argument :tier
+        end
+        """,
         ~r/do not cover attributes :email/
       )
     end
@@ -216,7 +227,7 @@ defmodule AshTypedSql.CrudTest do
       assert_refused(
         "orders",
         @order_attributes,
-        ~s{query :q, "orders/create_order.sql", as: :update, argument_names: [:id, :total]},
+        ~s{query :q, "orders/create_order.sql", as: :update},
         ~r/classifies the statement as :create, not :update/
       )
     end
@@ -225,7 +236,7 @@ defmodule AshTypedSql.CrudTest do
       assert_refused(
         "orders",
         @order_attributes,
-        ~s{query :q, "orders/delete_and_log.sql", as: :destroy, argument_names: [:id]},
+        ~s{query :q, "orders/delete_and_log.sql", as: :destroy},
         ~r/classifies the statement as :mixed, not :destroy/
       )
     end
@@ -248,12 +259,48 @@ defmodule AshTypedSql.CrudTest do
       )
     end
 
-    test "as :update without a parameter named after the primary key" do
+    test "as :update with an argument for the primary key, which binds from the record" do
       assert_refused(
         "orders",
         @order_attributes,
-        ~s{query :q, "orders/set_total.sql", as: :update, argument_names: [:order_id, :total]},
-        ~r/must name a parameter after each primary key attribute.*Missing :id/
+        """
+        query :q, "orders/set_total.sql" do
+          as :update
+          argument :id
+          argument :total
+        end
+        """,
+        ~r/argument :id is a primary key attribute, which binds from the record to \$1/
+      )
+    end
+
+    test "as :update whose primary key Postgres stores differently from $1" do
+      assert_refused(
+        "orders",
+        String.replace(@order_attributes, "integer_primary_key(:id)", "uuid_primary_key(:id)"),
+        """
+        query :q, "orders/set_total.sql" do
+          as :update
+          argument :total
+        end
+        """,
+        ~r/primary key :id binds from the record to \$1, but Postgres stores :id as :uuid and \$1 as :integer/
+      )
+    end
+
+    test "as :create with a preparation, which Ash create actions do not take" do
+      assert_refused(
+        "orders",
+        @order_attributes,
+        """
+        query :q, "orders/place_order.sql" do
+          as :create
+          argument :customer_id
+          argument :total
+          prepare AshTypedSql.Test.NotifyPreparation
+        end
+        """,
+        ~r/an Ash create action takes no preparations/
       )
     end
 

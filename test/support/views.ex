@@ -98,7 +98,7 @@ defmodule AshTypedSql.Test.Views.CustomerStatsSince do
     snapshot_dir "test/support/typed_sql/snapshots"
     primary_key [:customer_id]
     not_null [:order_count]
-    argument_names [:since]
+    argument :since
   end
 
   postgres do

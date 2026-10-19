@@ -10,6 +10,7 @@ defmodule AshTypedSql.View do
     describe: "Declares the `.sql` file that defines this resource's view.",
     target: AshTypedSql.View.TypedView,
     args: [:path],
+    entities: [arguments: [AshTypedSql.Argument.entity()]],
     schema: [
       path: [type: :string, required: true, doc: "The `.sql` file, relative to `sql_dir`."],
       primary_key: [
@@ -27,12 +28,6 @@ defmodule AshTypedSql.View do
         default: false,
         doc:
           "Creates a materialized view with a unique index on `primary_key`, and adds a `:refresh` action."
-      ],
-      argument_names: [
-        type: {:list, :atom},
-        default: [],
-        doc:
-          "Names for the positional parameters `$1..$n` of a parameterized view, in order. They become the read action's arguments."
       ],
       type_overrides: [
         type: :keyword_list,

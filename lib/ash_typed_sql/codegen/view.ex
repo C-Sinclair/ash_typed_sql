@@ -56,13 +56,20 @@ defmodule AshTypedSql.Codegen.View do
 
   @doc "Describes a view's `SELECT` and returns its snapshot as a JSON-ready map."
   def snapshot(conn, describe_conn, sql, view, label) do
-    sql = sql |> String.trim() |> String.trim_trailing(";") |> String.trim_trailing()
+    sql = trim_sql(sql)
 
     described =
       case Describe.describe(describe_conn, sql) do
         {:ok, described} -> described
         {:error, error} -> Mix.raise("#{label}: Postgres refused the statement: #{error.message}")
       end
+
+    names = Enum.map(view.arguments, & &1.name)
+
+    with {:error, message} <-
+           AshTypedSql.Argument.check_count(names, length(described.param_oids), 0) do
+      Mix.raise("#{label}: #{message}")
+    end
 
     snapshot = %{
       "sql" => sql,
@@ -80,25 +87,18 @@ defmodule AshTypedSql.Codegen.View do
         Mix.raise("#{label}: a materialized view takes no parameters")
 
       true ->
-        Map.put(snapshot, "function", function(conn, view, described, label))
+        Map.put(snapshot, "function", function(conn, names, described))
     end
   end
 
-  defp function(conn, view, described, label) do
-    names =
-      case view.argument_names do
-        [] -> Enum.map(1..length(described.param_oids), &"arg#{&1}")
-        names -> Enum.map(names, &Atom.to_string/1)
-      end
+  @doc false
+  def trim_sql(sql),
+    do: sql |> String.trim() |> String.trim_trailing(";") |> String.trim_trailing()
 
-    if length(names) != length(described.param_oids) do
-      Mix.raise(
-        "#{label}: the statement has #{length(described.param_oids)} parameters, but argument_names lists #{length(names)}"
-      )
-    end
-
+  defp function(conn, names, described) do
     %{
-      "arguments" => signature(conn, Enum.zip(names, described.param_oids)),
+      "arguments" =>
+        signature(conn, Enum.zip(Enum.map(names, &Atom.to_string/1), described.param_oids)),
       "returns" => signature(conn, Enum.map(described.columns, &{&1.name, &1.type_oid}))
     }
   end

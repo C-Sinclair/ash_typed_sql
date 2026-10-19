@@ -12,7 +12,7 @@ defmodule AshTypedSql.Crud do
   @doc """
   Returns how a query's result columns and parameters map to the resource, or the reason the snapshot contradicts `query.as`.
 
-  `fields` holds the attribute each result column loads into, or `nil` for a table column the resource does not declare. `record_params` names the parameters bound from the record an update or destroy acts on.
+  `fields` holds the attribute each result column loads into, or `nil` for a table column the resource does not declare. `record_params` names the primary key attributes an update or destroy binds from the record to `$1..$k`, ahead of its declared arguments.
   """
   @spec check(Ash.Resource.t() | map(), AshTypedSql.Query.t(), map()) ::
           {:ok, fit()} | {:error, String.t()}
@@ -23,7 +23,7 @@ defmodule AshTypedSql.Crud do
     primary_key = for attribute <- attributes, attribute.primary_key?, do: attribute.name
     by_column = Map.new(attributes, &{to_string(&1.source || &1.name), &1.name})
     kind = query.kind || String.to_existing_atom(snapshot["kind"])
-    names = AshTypedSql.Query.argument_names(query, length(snapshot["params"]))
+    names = Enum.map(query.arguments, & &1.name)
 
     with :ok <- check_kind(query.as, kind),
          :ok <- check_writes(query.as, snapshot["writes"], table),
@@ -31,8 +31,8 @@ defmodule AshTypedSql.Crud do
       fields = Enum.map(snapshot["columns"], &by_column[&1["source"]["column"]])
 
       with :ok <- check_coverage(query.as, fields, attributes, primary_key),
-           :ok <- check_record_params(query.as, names, primary_key) do
-        {:ok, %{fields: fields, record_params: record_params(query.as, names, primary_key)}}
+           :ok <- check_record_params(query.as, names, primary_key, length(snapshot["params"])) do
+        {:ok, %{fields: fields, record_params: record_params(query.as, primary_key)}}
       end
     end
   end
@@ -93,21 +93,28 @@ defmodule AshTypedSql.Crud do
     end
   end
 
-  defp check_record_params(as, names, primary_key) when as in [:update, :destroy] do
-    case primary_key -- names do
-      [] ->
-        :ok
-
-      missing ->
+  defp check_record_params(as, names, primary_key, param_count) when as in [:update, :destroy] do
+    cond do
+      param_count < length(primary_key) ->
         {:error,
-         "argument_names must name a parameter after each primary key attribute, so it binds to the record. Missing #{Enum.map_join(missing, ", ", &inspect/1)}"}
+         "the primary key binds from the record to the first #{length(primary_key)} parameters, but the statement has #{param_count}"}
+
+      Enum.any?(names, &(&1 in primary_key)) ->
+        named = names |> Enum.filter(&(&1 in primary_key)) |> Enum.map_join(", ", &inspect/1)
+
+        {:error,
+         "argument #{named} is a primary key attribute, which binds from the record to #{key_positions(primary_key)}. Remove the argument"}
+
+      true ->
+        :ok
     end
   end
 
-  defp check_record_params(_as, _names, _primary_key), do: :ok
+  defp check_record_params(_as, _names, _primary_key, _param_count), do: :ok
 
-  defp record_params(as, names, primary_key) when as in [:update, :destroy],
-    do: Enum.filter(names, &(&1 in primary_key))
+  defp key_positions(primary_key),
+    do: Enum.map_join(1..length(primary_key), ", ", &"$#{&1}")
 
-  defp record_params(_as, _names, _primary_key), do: []
+  defp record_params(as, primary_key) when as in [:update, :destroy], do: primary_key
+  defp record_params(_as, _primary_key), do: []
 end

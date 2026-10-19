@@ -7,7 +7,8 @@ defmodule AshTypedSql.Query do
     :kind,
     :as,
     :description,
-    argument_names: [],
+    arguments: [],
+    preparations: [],
     type_overrides: [],
     not_null: [],
     __identifier__: nil,
@@ -20,15 +21,9 @@ defmodule AshTypedSql.Query do
           kind: AshTypedSql.kind() | nil,
           as: :read | :create | :update | :destroy | nil,
           description: String.t() | nil,
-          argument_names: [atom()],
+          arguments: [Ash.Resource.Actions.Argument.t()],
+          preparations: [Ash.Resource.Preparation.t() | Ash.Resource.Validation.t()],
           type_overrides: [{String.t(), Ash.Type.t()}],
           not_null: [atom()]
         }
-
-  @doc "Returns the names of the positional parameters, defaulting to `arg1..argN`."
-  @spec argument_names(t(), non_neg_integer()) :: [atom()]
-  def argument_names(%__MODULE__{argument_names: []}, count),
-    do: Enum.map(1..count//1, &:"arg#{&1}")
-
-  def argument_names(%__MODULE__{argument_names: names}, _count), do: names
 end
