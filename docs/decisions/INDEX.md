@@ -16,6 +16,8 @@ Start from [`ADR-000-TEMPLATE.md`](ADR-000-TEMPLATE.md). Design docs live in [`.
 | [005](ADR-005-classify-statements-with-explain.md) | Classify statements with `EXPLAIN (GENERIC_PLAN)`, and require Postgres 16 | proposed |
 | [006](ADR-006-order-and-pick-function-overloads.md) | Order function overloads for Ash's first-fit cast, and pick the overload again in SQL | accepted |
 | [009](ADR-009-describe-sql-functions-in-a-rolled-back-transaction.md) | Read a `sql:` function from `pg_proc` inside a rolled-back transaction, and migrate it with Ecto | accepted |
+| [007](ADR-007-view-migrations-ask-postgres-whether-replace-works.md) | Choose between replacing and rebuilding a view by asking Postgres at codegen | accepted |
+| [010](ADR-010-parameterized-views-are-functions-read-through-a-cte.md) | Read a parameterized view through a CTE named after its table | accepted |
 
 ## Documentation
 
@@ -26,5 +28,4 @@ Start from [`ADR-000-TEMPLATE.md`](ADR-000-TEMPLATE.md). Design docs live in [`.
 ## Not yet decided
 
 1. **Snapshot format.** Whether it records the Postgres version it was described against ([ADR-003](ADR-003-describe-at-codegen-compile-from-snapshots.md)).
-2. **Parameterized views.** SQL function or CTE ([DD-003](../designs/DD-003-views.md)).
-3. **Fallback below Postgres 16.** Whether to parse with `libpg_query` ([ADR-005](ADR-005-classify-statements-with-explain.md)).
+2. **Fallback below Postgres 16.** Whether to parse with `libpg_query` ([ADR-005](ADR-005-classify-statements-with-explain.md)).

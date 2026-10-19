@@ -128,7 +128,8 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
     end
   end
 
-  defp define_enums(resource, snapshot, defined) do
+  @doc false
+  def define_enums(resource, snapshot, defined) do
     snapshot["params"]
     |> Enum.concat(Enum.map(snapshot["columns"], & &1["type"]))
     |> Enum.flat_map(&TypeMap.enums/1)
@@ -181,5 +182,6 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
 
   defp ash_type(resource, _query, type), do: TypeMap.to_ash(type, &enum_module(resource, &1))
 
-  defp enum_module(resource, %{"name" => name}), do: Module.concat(resource, Macro.camelize(name))
+  @doc false
+  def enum_module(resource, %{"name" => name}), do: Module.concat(resource, Macro.camelize(name))
 end

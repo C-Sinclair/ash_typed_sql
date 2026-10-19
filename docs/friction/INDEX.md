@@ -12,3 +12,5 @@ Start from [`FF-000-TEMPLATE.md`](FF-000-TEMPLATE.md). Naming is `FF-DDMMYY-keba
 |---|---|---|
 | [FF-191026-postgrex-drops-row-description-origin](FF-191026-postgrex-drops-row-description-origin.md) | reportable | `Postgrex.Query` drops each result column's table OID and attnum |
 | [FF-191026-ash-custom-expression-arguments-truncate](FF-191026-ash-custom-expression-arguments-truncate.md) | reportable | Ash matches a custom expression argument list of a different length, and casts the arguments to it |
+| [FF-191026-ecto-migrator-needs-two-sandbox-connections](FF-191026-ecto-migrator-needs-two-sandbox-connections.md) | none | `Ecto.Migrator` deadlocks on a sandboxed repo, because it needs a second connection |
+| [FF-191026-ecto-fragment-source-has-no-struct-select](FF-191026-ecto-fragment-source-has-no-struct-select.md) | none | Ecto refuses a fragment `FROM` under the `struct` select that `ash_sql` builds |

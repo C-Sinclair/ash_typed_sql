@@ -1,0 +1,48 @@
+{
+  "columns": [
+    {
+      "name": "customer_id",
+      "source": {
+        "column": "id",
+        "not_null": true,
+        "schema": "public",
+        "table": "customers"
+      },
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "tier",
+      "source": {
+        "column": "tier",
+        "not_null": true,
+        "schema": "public",
+        "table": "customers"
+      },
+      "type": {
+        "name": "customer_tier",
+        "schema": "public",
+        "type": "enum",
+        "values": [
+          "bronze",
+          "silver",
+          "gold"
+        ]
+      }
+    },
+    {
+      "name": "order_count",
+      "source": null,
+      "type": {
+        "type": "integer"
+      }
+    }
+  ],
+  "materialized": true,
+  "params": [],
+  "primary_key": [
+    "customer_id"
+  ],
+  "sql": "select c.id as customer_id, c.tier, count(o.id) as order_count\nfrom customers c\nleft join orders o on o.customer_id = c.id\ngroup by c.id"
+}

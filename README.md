@@ -108,36 +108,67 @@ defmodule MyApp.Accounts.CustomerStats do
     primary_key [:customer_id]
   end
 
+  postgres do
+    repo MyApp.Repo
+  end
+
   relationships do
-    belongs_to :customer, MyApp.Accounts.Customer, source_attribute: :customer_id
+    belongs_to :customer, MyApp.Accounts.Customer do
+      source_attribute :customer_id
+      define_attribute? false
+    end
   end
 end
 ```
 
 From that file, `mix ash.codegen` generates:
 
-- a migration with `CREATE OR REPLACE VIEW customer_stats AS ...`, and a new migration whenever the file changes
+- a migration with `CREATE VIEW customer_stats AS ...`, and a new migration whenever the file changes
 - one attribute per column, typed by describing the `SELECT`
 - `postgres do table "customer_stats"; migrate? false end`, so the AshPostgres migration generator leaves the view alone
+- a primary `:read` action, unless the resource declares a read action
+
+The `belongs_to` needs `define_attribute? false`, because `customer_id` is already an attribute.
 
 `MyApp.Accounts.Customer` can then declare `has_one :stats, MyApp.Accounts.CustomerStats`, and `Ash.Query.filter(customers, stats.order_count > 5)` works like any other relationship filter.
 
 Postgres reports every view column as nullable, because `pg_attribute.attnotnull` is always false for a view. AshTypedSql takes nullability from describing the `SELECT` against its base tables. The `not_null [...]` option marks computed columns that can never be null.
 
-Changing a view's columns, or changing a view that another view depends on, makes `CREATE OR REPLACE VIEW` fail. In those cases the generated migration drops and recreates the affected views in dependency order, read from `pg_depend`.
+A changed view migrates with `CREATE OR REPLACE VIEW` when Postgres accepts it. Dropping, renaming or retyping a column makes it fail. In those cases the generated migration drops and recreates the view and every view that depends on it, in dependency order read from `pg_depend`. Codegen decides by trying each direction of the migration against the dev database in a transaction it rolls back, so the dev database must be migrated before `mix ash.codegen` runs. A migration that would fail, such as one that drops a column a dependent view reads, fails `mix ash.codegen` with the Postgres error.
 
 ### Materialized views
 
-`materialized? true` generates `CREATE MATERIALIZED VIEW` instead, plus a unique index on `primary_key` and a `:refresh` generic action that runs `REFRESH MATERIALIZED VIEW CONCURRENTLY`. Schedule the refresh with `ash_oban`.
+`materialized? true` generates `CREATE MATERIALIZED VIEW` instead, plus a unique index `<table>_primary_key_index` on `primary_key` and a `:refresh` generic action that runs `REFRESH MATERIALIZED VIEW CONCURRENTLY`. Schedule the refresh with `ash_oban`.
 
-### Open question: parameterized views
+### Parameterized views
 
-A view takes no arguments, so a query such as "stats since `$1`" cannot be a view. Two candidate designs:
+A view takes no arguments, so a `SELECT` with `$1..$n` parameters becomes a set-returning `LANGUAGE sql STABLE` function instead, named after the table. The parameters become required arguments of the generated `:read` action.
 
-- A set-returning `LANGUAGE sql` function, `customer_stats_since(timestamptz) RETURNS TABLE (...)`, with the function arguments becoming read action arguments. Postgres can inline such a function, so filters still reach the base tables.
-- A CTE added to the read's Ecto query with `with_cte/3`.
+```sql
+-- priv/typed_sql/views/customer_stats_since.sql
+select c.id as customer_id, count(o.id) as order_count
+from customers c
+left join orders o on o.customer_id = c.id and o.inserted_at >= $1
+group by c.id
+```
 
-Both need the read action to replace the `FROM` relation in the Ecto query `ash_postgres` builds. Whether `ash_postgres` exposes a public hook for that is unverified. If it does not, adding one is a candidate upstream PR.
+```elixir
+typed_view "views/customer_stats_since.sql" do
+  primary_key [:customer_id]
+  argument_names [:since]
+end
+```
+
+```elixir
+MyApp.Accounts.CustomerStatsSince
+|> Ash.Query.for_read(:read, %{since: ~U[2026-01-01 00:00:00Z]})
+|> Ash.Query.filter(order_count > 5)
+|> Ash.read!()
+```
+
+The read action's `modify_query` adds `WITH "customer_stats_since" AS (select * from "customer_stats_since"($1))` to the query, and the `FROM "customer_stats_since"` that `ash_postgres` builds reads it. Postgres inlines the function, so the filter and the `$1` condition reach the base tables.
+
+Filters, sorts, pagination and relationship loads work. A relationship into a parameterized view sets `read_action :read`, and the load passes the arguments with `Ash.Query.for_read/3`. A relationship filter, sort or aggregate into a parameterized view fails, because a filter cannot pass read arguments. A parameterized view cannot set a `postgres` `schema`.
 
 A `WITH` statement inside a query file needs no special support. Describe types it like any other statement, and `EXPLAIN` lists the writes made inside its CTEs.
 
