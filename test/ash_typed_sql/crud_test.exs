@@ -2,6 +2,7 @@ defmodule AshTypedSql.CrudTest do
   use ExUnit.Case, async: true
 
   import ExUnit.CaptureIO
+  require Ash.Query
 
   alias AshTypedSql.Test.{Order, Repo}
 
@@ -24,11 +25,32 @@ defmodule AshTypedSql.CrudTest do
     id
   end
 
+  defp place_order(customer_id, total) do
+    Order
+    |> Ash.Changeset.for_create(:place_order, %{customer_id: customer_id, total: total})
+    |> Ash.create!()
+  end
+
   describe "generated actions" do
-    test "as :read becomes a manual read action" do
-      action = Ash.Resource.Info.action(Order, :for_customer)
-      assert action.type == :read
-      assert {AshTypedSql.ManualRead, _} = action.manual
+    test "each opt-in becomes a manual action of its type" do
+      for {name, type, module} <- [
+            for_customer: {:read, AshTypedSql.ManualRead},
+            place_order: {:create, AshTypedSql.ManualWrite},
+            set_total: {:update, AshTypedSql.ManualWrite},
+            remove_order: {:destroy, AshTypedSql.ManualWrite}
+          ] do
+        action = Ash.Resource.Info.action(Order, name)
+        assert action.type == type
+        assert {^module, _} = action.manual
+      end
+    end
+
+    test "primary key parameters of an update or destroy are not arguments" do
+      assert Enum.map(Ash.Resource.Info.action(Order, :set_total).arguments, & &1.name) == [
+               :total
+             ]
+
+      assert Ash.Resource.Info.action(Order, :remove_order).arguments == []
     end
   end
 
@@ -46,6 +68,92 @@ defmodule AshTypedSql.CrudTest do
       assert a.customer_id == customer_id
       assert Decimal.equal?(b.total, "2.50")
       assert %DateTime{} = a.inserted_at
+    end
+
+    test "Ash.Query filters do not apply", %{customer_id: customer_id} do
+      first = insert_order(customer_id, "1.50")
+      insert_order(customer_id, "2.50")
+
+      assert [_, _] =
+               Order
+               |> Ash.Query.for_read(:for_customer, %{customer_id: customer_id})
+               |> Ash.Query.filter(id == ^first)
+               |> Ash.read!()
+    end
+  end
+
+  describe "as :create" do
+    test "returns the inserted row as a record", %{customer_id: customer_id} do
+      order = place_order(customer_id, "12.30")
+
+      assert %Order{id: id, customer_id: ^customer_id, discount: nil} = order
+      assert is_integer(id)
+      assert Decimal.equal?(order.total, "12.30")
+      assert %{rows: [[1]]} = Repo.query!("select count(*) from orders")
+    end
+  end
+
+  describe "as :update" do
+    test "binds the primary key from the record and returns the updated row",
+         %{customer_id: customer_id} do
+      order = place_order(customer_id, "1.00")
+      other = place_order(customer_id, "5.00")
+
+      updated =
+        order
+        |> Ash.Changeset.for_update(:set_total, %{total: "9.99"})
+        |> Ash.update!()
+
+      assert updated.id == order.id
+      assert Decimal.equal?(updated.total, "9.99")
+
+      assert %{rows: [[total]]} =
+               Repo.query!("select total from orders where id = $1", [other.id])
+
+      assert Decimal.equal?(total, "5.00")
+    end
+
+    test "a record that no longer exists is a stale record error", %{customer_id: customer_id} do
+      order = place_order(customer_id, "1.00")
+      Repo.query!("delete from orders")
+
+      assert {:error, %Ash.Error.Invalid{errors: [%Ash.Error.Changes.StaleRecord{}]}} =
+               order
+               |> Ash.Changeset.for_update(:set_total, %{total: "2.00"})
+               |> Ash.update()
+    end
+
+    test "a statement touching more than one row is refused and rolled back",
+         %{customer_id: customer_id} do
+      order = place_order(customer_id, "1.00")
+      place_order(customer_id, "2.00")
+
+      assert {:error, error} =
+               order
+               |> Ash.Changeset.for_update(:set_total_or_customer, %{
+                 total: "0.00",
+                 customer_id: customer_id
+               })
+               |> Ash.update()
+
+      assert Exception.message(error) =~ "returned 2 rows, expected one"
+      assert %{rows: [[0]]} = Repo.query!("select count(*) from orders where total = 0")
+    end
+  end
+
+  describe "as :destroy" do
+    test "binds the primary key from the record and returns the deleted row",
+         %{customer_id: customer_id} do
+      order = place_order(customer_id, "3.00")
+      place_order(customer_id, "4.00")
+
+      assert {:ok, %Order{id: id}} =
+               order
+               |> Ash.Changeset.for_destroy(:remove_order)
+               |> Ash.destroy(return_destroyed?: true)
+
+      assert id == order.id
+      assert %{rows: [[1]]} = Repo.query!("select count(*) from orders")
     end
   end
 
@@ -101,6 +209,60 @@ defmodule AshTypedSql.CrudTest do
         "uuid_primary_key(:id)\nattribute(:email, :ci_string, allow_nil?: false)",
         ~s{query :q, "customers/by_tier.sql", as: :read, argument_names: [:tier]},
         ~r/do not cover attributes :email/
+      )
+    end
+
+    test "as :update on an insert" do
+      assert_refused(
+        "orders",
+        @order_attributes,
+        ~s{query :q, "orders/create_order.sql", as: :update, argument_names: [:id, :total]},
+        ~r/classifies the statement as :create, not :update/
+      )
+    end
+
+    test "as :destroy on a statement with two writes" do
+      assert_refused(
+        "orders",
+        @order_attributes,
+        ~s{query :q, "orders/delete_and_log.sql", as: :destroy, argument_names: [:id]},
+        ~r/classifies the statement as :mixed, not :destroy/
+      )
+    end
+
+    test "as :create when the write is to another resource's table" do
+      assert_refused(
+        "customers",
+        "uuid_primary_key(:id)",
+        ~s{query :q, "orders/create_order.sql", as: :create},
+        ~r/must only insert into customers, but it writes insert orders/
+      )
+    end
+
+    test "as :create when RETURNING does not cover the full row" do
+      assert_refused(
+        "orders",
+        @order_attributes <> "attribute(:note, :string, public?: true)",
+        ~s{query :q, "orders/create_order.sql", as: :create},
+        ~r/do not cover attributes :note/
+      )
+    end
+
+    test "as :update without a parameter named after the primary key" do
+      assert_refused(
+        "orders",
+        @order_attributes,
+        ~s{query :q, "orders/set_total.sql", as: :update, argument_names: [:order_id, :total]},
+        ~r/must name a parameter after each primary key attribute.*Missing :id/
+      )
+    end
+
+    test "kind overrides the classified kind" do
+      assert_refused(
+        "orders",
+        @order_attributes,
+        ~s{query :q, "orders/place_order.sql", as: :create, kind: :read},
+        ~r/classifies the statement as :read, not :create/
       )
     end
   end

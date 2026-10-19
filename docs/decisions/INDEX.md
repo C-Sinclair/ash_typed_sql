@@ -14,6 +14,7 @@ Start from [`ADR-000-TEMPLATE.md`](ADR-000-TEMPLATE.md). Design docs live in [`.
 | [003](ADR-003-describe-at-codegen-compile-from-snapshots.md) | Describe SQL at codegen time, and compile from checked-in snapshots | accepted |
 | [004](ADR-004-generic-actions-by-default.md) | Generate generic actions by default, and CRUD actions only on opt-in | proposed |
 | [005](ADR-005-classify-statements-with-explain.md) | Classify statements with `EXPLAIN (GENERIC_PLAN)`, and require Postgres 16 | proposed |
+| [008](ADR-008-bind-crud-opt-ins-to-the-record.md) | Bind opt-in update and destroy queries to the record by primary key name, and require exactly one returned row | proposed |
 
 ## Documentation
 

@@ -152,6 +152,9 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
   defp action_options(_resource, %{as: :read} = query, _snapshot, _ash_type),
     do: [manual: {AshTypedSql.ManualRead, query: query.name}]
 
+  defp action_options(_resource, query, _snapshot, _ash_type),
+    do: [accept: [], manual: {AshTypedSql.ManualWrite, query: query.name}]
+
   defp check_arguments(resource, query, names, snapshot) do
     if length(names) == length(snapshot["params"]) do
       :ok

@@ -85,6 +85,18 @@ The snapshot records this as `kind` (`:read`, `:create`, `:update`, `:destroy` o
 
 Opt-in per query is required for the second and third cases. `ModifyTable` says a write happens, not that it matches Ash's model of the action. An Ash `update` acts on one record the caller already holds. A SQL `UPDATE ... WHERE status = $1` touches any number of rows, which is closer to a bulk update. Queries with more than one `ModifyTable` node, or a node on a table that belongs to another resource, stay generic actions.
 
+The `as` option opts in, with `:read`, `:create`, `:update` or `:destroy`. `mix ash.codegen` and compilation both refuse an opt-in the snapshot contradicts, and name the condition that failed.
+
+```elixir
+query :set_total, "orders/set_total.sql" do
+  # update orders set total = $2 where id = $1 returning *
+  argument_names [:id, :total]
+  as :update
+end
+```
+
+In an `as :update` or `as :destroy` query, a parameter named after a primary key attribute takes its value from the record being changed, so `Ash.update(order, %{total: 10}, action: :set_total)` binds `$1` to `order.id`. Every primary key attribute needs such a parameter. The statement must return exactly one row. Zero rows is a stale record error, and more than one rolls the action back.
+
 ## Views
 
 A generic action returns a finished value, so `Ash.Query` filters, sorts, pagination and loads do not apply to it. A view is a relation, and `ash_postgres` already reads from any relation as if it were a table. A `.sql` file that defines a view therefore gives a resource that supports all of `Ash.Query`.

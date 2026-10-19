@@ -79,6 +79,26 @@ defmodule AshTypedSql.Test.Order do
       argument_names([:customer_id])
       as(:read)
     end
+
+    query :place_order, "orders/place_order.sql" do
+      argument_names([:customer_id, :total])
+      as(:create)
+    end
+
+    query :set_total, "orders/set_total.sql" do
+      argument_names([:id, :total])
+      as(:update)
+    end
+
+    query :set_total_or_customer, "orders/set_total_or_customer.sql" do
+      argument_names([:id, :total, :customer_id])
+      as(:update)
+    end
+
+    query :remove_order, "orders/remove_order.sql" do
+      argument_names([:id])
+      as(:destroy)
+    end
   end
 
   attributes do
