@@ -7,7 +7,7 @@ defmodule Bookshelf.Library.PopularBook do
   typed_view "views/popular_books.sql" do
     primary_key [:book_id]
     not_null [:loan_count]
-    argument_names [:since]
+    argument :since
   end
 
   postgres do

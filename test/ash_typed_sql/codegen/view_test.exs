@@ -184,7 +184,7 @@ defmodule AshTypedSql.Codegen.ViewTest do
     @view %TypedView{
       path: "dd003_since.sql",
       primary_key: [:customer_id],
-      argument_names: [:since]
+      arguments: [%Ash.Resource.Actions.Argument{name: :since}]
     }
     @old_sql """
     select c.id as customer_id, count(o.id) as order_count

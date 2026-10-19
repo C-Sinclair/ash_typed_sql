@@ -16,9 +16,10 @@ Start from [`ADR-000-TEMPLATE.md`](ADR-000-TEMPLATE.md). Design docs live in [`.
 | [005](ADR-005-classify-statements-with-explain.md) | Classify statements with `EXPLAIN (GENERIC_PLAN)`, and require Postgres 16 | proposed |
 | [006](ADR-006-order-and-pick-function-overloads.md) | Order function overloads for Ash's first-fit cast, and pick the overload again in SQL | accepted |
 | [007](ADR-007-view-migrations-ask-postgres-whether-replace-works.md) | Choose between replacing and rebuilding a view by asking Postgres at codegen | accepted |
-| [008](ADR-008-bind-crud-opt-ins-to-the-record.md) | Bind opt-in update and destroy queries to the record by primary key name, and require exactly one returned row | proposed |
+| [008](ADR-008-bind-crud-opt-ins-to-the-record.md) | Bind opt-in update and destroy queries to the record by primary key position, and require exactly one returned row | proposed |
 | [009](ADR-009-describe-sql-functions-in-a-rolled-back-transaction.md) | Read a `sql:` function from `pg_proc` inside a rolled-back transaction, and migrate it with Ecto | accepted |
 | [010](ADR-010-parameterized-views-are-functions-read-through-a-cte.md) | Read a parameterized view through a CTE named after its table | accepted |
+| [011](ADR-011-query-arguments-are-ash-arguments-mapped-by-position.md) | Query arguments are Ash arguments mapped by position | accepted |
 
 ## Documentation
 

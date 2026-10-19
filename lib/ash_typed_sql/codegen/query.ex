@@ -145,6 +145,20 @@ defmodule AshTypedSql.Codegen.Query do
       Mix.raise("#{label}: cannot be `as #{inspect(as)}`: #{message}")
     end
 
+    key_count =
+      if query.as in [:update, :destroy],
+        do: length(Ash.Resource.Info.primary_key(resource)),
+        else: 0
+
+    with {:error, message} <-
+           AshTypedSql.Argument.check_count(
+             Enum.map(query.arguments, & &1.name),
+             length(described.param_oids),
+             key_count
+           ) do
+      Mix.raise("#{label}: #{message}")
+    end
+
     snapshot
   end
 

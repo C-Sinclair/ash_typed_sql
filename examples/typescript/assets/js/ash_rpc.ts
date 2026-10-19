@@ -251,8 +251,8 @@ export async function refreshAuthorStats(
 export type AddBookInput = {
   authorId: UUID;
   title: string;
-  publishedOn: AshDate;
-  copies: number;
+  publishedOn?: AshDate | null;
+  copies?: number;
 };
 
 export type AddBookFields = UnifiedFieldSelection<BookResourceSchema>[];
@@ -426,7 +426,7 @@ export async function retitleBook<Fields extends RetitleBookFields | undefined =
 
 
 export type TopRatedBooksInput = {
-  limit: number;
+  limit?: number;
 };
 
 export type TopRatedBooksFields = UnifiedFieldSelection<{id: UUID, title: string, authorName: string, averageRating: Decimal | null, reviewCount: number, __type: "TypedMap", __primitiveFields: "id" | "title" | "authorName" | "averageRating" | "reviewCount"}>[];
@@ -448,7 +448,7 @@ export type TopRatedBooksResult<Fields extends TopRatedBooksFields | undefined =
 export async function topRatedBooks<Fields extends TopRatedBooksFields | undefined = undefined>(
   config: {
   tenant?: string;
-  input: TopRatedBooksInput;
+  input?: TopRatedBooksInput;
   fields: Fields;
   headers?: Record<string, string>;
   fetchOptions?: RequestInit;

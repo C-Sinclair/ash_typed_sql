@@ -12,27 +12,28 @@ defmodule Library.Loan do
 
   typed_sql do
     query :top_borrowers, "loans/top_borrowers.sql" do
-      argument_names [:limit]
+      argument :limit, default: 10, constraints: [min: 1]
       not_null [:loan_count]
     end
 
     query :loans_for, "loans/loans_for.sql" do
-      argument_names [:borrower]
+      argument :borrower
       as :read
     end
 
     query :lend_book, "loans/lend_book.sql" do
-      argument_names [:book_id, :borrower, :due_on]
+      argument :book_id
+      argument :borrower
+      argument :due_on
       as :create
     end
 
+    # An update or destroy binds the primary key from the record to $1, so `id` is not an argument.
     query :return_book, "loans/return_book.sql" do
-      argument_names [:id]
       as :update
     end
 
     query :cancel_loan, "loans/cancel_loan.sql" do
-      argument_names [:id]
       as :destroy
     end
   end

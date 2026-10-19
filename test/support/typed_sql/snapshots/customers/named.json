@@ -1,0 +1,27 @@
+{
+  "columns": [
+    {
+      "name": "name",
+      "source": {
+        "column": "name",
+        "not_null": true,
+        "schema": "public",
+        "table": "customers"
+      },
+      "type": {
+        "type": "string"
+      }
+    }
+  ],
+  "kind": "read",
+  "params": [
+    {
+      "type": "string"
+    },
+    {
+      "type": "integer"
+    }
+  ],
+  "sql": "select name from customers\nwhere $1::text is null or lower(name) = lower($1)\norder by name\nlimit $2\n",
+  "writes": []
+}

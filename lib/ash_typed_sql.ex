@@ -13,14 +13,17 @@ defmodule AshTypedSql do
     target: AshTypedSql.Query,
     args: [:name, :path],
     identifier: :name,
+    imports: [Ash.Resource.Preparation.Builtins, Ash.Resource.Validation.Builtins, Ash.Expr],
+    entities: [
+      arguments: [AshTypedSql.Argument.entity()],
+      preparations: [
+        AshTypedSql.Argument.ash_preparation_entity(:prepare),
+        AshTypedSql.Argument.ash_preparation_entity(:validate)
+      ]
+    ],
     schema: [
       name: [type: :atom, required: true, doc: "The name of the generated action."],
       path: [type: :string, required: true, doc: "The `.sql` file, relative to `sql_dir`."],
-      argument_names: [
-        type: {:list, :atom},
-        default: [],
-        doc: "Names for the positional parameters `$1..$n`, in order."
-      ],
       type_overrides: [
         type: :keyword_list,
         default: [],

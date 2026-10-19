@@ -18,7 +18,8 @@ for {title, rating, body} <- [
       {"A Wizard of Earthsea", 5, "Still the best magic school."},
       {"A Wizard of Earthsea", 4, "Ged deserved better."},
       {"The Dispossessed", 5, "An ambiguous utopia indeed."},
-      {"Kindred", 5, "Could not put it down."}
+      {"Kindred", 5, "Could not put it down."},
+      {"Invisible Cities", 4, nil}
     ] do
   Library.add_review!(books[title], rating, body)
 end
@@ -35,4 +36,4 @@ end
 
 Library.refresh_book_stats!()
 
-IO.puts("Seeded #{map_size(books)} books, 4 reviews and 5 loans.")
+IO.puts("Seeded #{map_size(books)} books, 5 reviews and 5 loans.")

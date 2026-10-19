@@ -29,3 +29,5 @@ Every seeded review has a body. A query that must accept a missing value needs a
 ## What would fix it
 
 A `nullable` option on `query`, listing parameters that accept `nil`, mirroring `not_null` for result columns.
+
+**Resolved:** 2026-10-19. `argument` entities replaced `argument_names` ([ADR-011](../decisions/ADR-011-query-arguments-are-ash-arguments-mapped-by-position.md)). `examples/simple` declares `argument :body, allow_nil?: true` on `add_review`, and seeds a review without a body.

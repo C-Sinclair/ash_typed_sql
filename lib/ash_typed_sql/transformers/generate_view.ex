@@ -64,15 +64,49 @@ defmodule AshTypedSql.Transformers.GenerateView do
     with :ok <- check_columns(resource, view, :primary_key, columns),
          :ok <- check_columns(resource, view, :not_null, columns),
          :ok <- check_schema(dsl, resource, snapshot),
-         {:ok, _enums} <- GenerateQueries.define_enums(resource, snapshot, MapSet.new()) do
+         {:ok, _enums} <- GenerateQueries.define_enums(resource, snapshot, MapSet.new()),
+         {:ok, arguments} <- match_arguments(resource, view, snapshot) do
       dsl =
         snapshot["columns"]
         |> Enum.map(&attribute(resource, view, &1))
         |> Enum.reduce(dsl, &Transformer.add_entity(&2, [:attributes], &1, type: :append))
-        |> add_read_action(resource, view, snapshot)
+        |> add_read_action(resource, arguments, snapshot)
         |> add_refresh_action(view)
 
       {:ok, dsl}
+    else
+      :stale -> {:ok, dsl}
+      error -> error
+    end
+  end
+
+  defp match_arguments(resource, view, snapshot) do
+    case AshTypedSql.Argument.match(
+           view.arguments,
+           snapshot["params"],
+           0,
+           &ash_type(resource, view, &1)
+         ) do
+      {:ok, arguments} ->
+        {:ok, arguments}
+
+      {:error, message} ->
+        sql = Info.sql_path(view) |> File.read!() |> AshTypedSql.Codegen.View.trim_sql()
+
+        if sql == snapshot["sql"] do
+          {:error,
+           DslError.exception(
+             module: resource,
+             path: [:typed_view, :argument],
+             message: "#{view.path}: #{message}"
+           )}
+        else
+          IO.warn(
+            "#{inspect(resource)} view skipped, because its arguments do not match a snapshot of SQL that has changed since: #{message}. Run `mix ash.codegen`."
+          )
+
+          :stale
+        end
     end
   end
 
@@ -99,20 +133,9 @@ defmodule AshTypedSql.Transformers.GenerateView do
     do: TypeMap.to_ash(type, &GenerateQueries.enum_module(resource, &1))
 
   # A parameterized view's relation is a function, which the generated source module puts in a CTE named after the table, so the `FROM "table"` that `ash_postgres` builds reads it.
-  defp add_read_action(dsl, resource, view, %{"function" => function} = snapshot) do
-    names = Enum.map(function["arguments"], &String.to_atom(&1["name"]))
+  defp add_read_action(dsl, resource, arguments, %{"function" => _}) do
+    names = Enum.map(arguments, & &1.name)
     source = define_source(resource, Transformer.get_option(dsl, [:postgres], :table), names)
-
-    arguments =
-      names
-      |> Enum.zip(snapshot["params"])
-      |> Enum.map(fn {name, type} ->
-        Transformer.build_entity!(Ash.Resource.Dsl, [:actions, :read], :argument,
-          name: name,
-          type: ash_type(resource, view, type),
-          allow_nil?: false
-        )
-      end)
 
     read =
       Transformer.build_entity!(Ash.Resource.Dsl, [:actions], :read,
@@ -124,7 +147,7 @@ defmodule AshTypedSql.Transformers.GenerateView do
     Transformer.add_entity(dsl, [:actions], read)
   end
 
-  defp add_read_action(dsl, _resource, _view, _snapshot) do
+  defp add_read_action(dsl, _resource, _arguments, _snapshot) do
     if Enum.any?(Transformer.get_entities(dsl, [:actions]), &(&1.type == :read)) do
       dsl
     else
