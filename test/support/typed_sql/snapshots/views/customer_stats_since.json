@@ -1,0 +1,67 @@
+{
+  "columns": [
+    {
+      "name": "customer_id",
+      "source": {
+        "column": "id",
+        "not_null": true,
+        "schema": "public",
+        "table": "customers"
+      },
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "name",
+      "source": {
+        "column": "name",
+        "not_null": true,
+        "schema": "public",
+        "table": "customers"
+      },
+      "type": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "order_count",
+      "source": null,
+      "type": {
+        "type": "integer"
+      }
+    }
+  ],
+  "function": {
+    "arguments": [
+      {
+        "name": "since",
+        "type": "timestamp with time zone"
+      }
+    ],
+    "returns": [
+      {
+        "name": "customer_id",
+        "type": "uuid"
+      },
+      {
+        "name": "name",
+        "type": "text"
+      },
+      {
+        "name": "order_count",
+        "type": "bigint"
+      }
+    ]
+  },
+  "materialized": false,
+  "params": [
+    {
+      "type": "utc_datetime_usec"
+    }
+  ],
+  "primary_key": [
+    "customer_id"
+  ],
+  "sql": "select c.id as customer_id, c.name, count(o.id) as order_count\nfrom customers c\nleft join orders o on o.customer_id = c.id and o.inserted_at >= $1\ngroup by c.id"
+}

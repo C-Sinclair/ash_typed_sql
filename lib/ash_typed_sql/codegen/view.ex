@@ -64,19 +64,50 @@ defmodule AshTypedSql.Codegen.View do
         {:error, error} -> Mix.raise("#{label}: Postgres refused the statement: #{error.message}")
       end
 
-    if described.param_oids != [] do
+    snapshot = %{
+      "sql" => sql,
+      "materialized" => view.materialized?,
+      "primary_key" => Enum.map(view.primary_key, &Atom.to_string/1),
+      "params" => Enum.map(described.param_oids, &Query.type(conn, &1, view, label)),
+      "columns" => Enum.map(described.columns, &Query.column(conn, &1, view, label))
+    }
+
+    cond do
+      described.param_oids == [] ->
+        snapshot
+
+      view.materialized? ->
+        Mix.raise("#{label}: a materialized view takes no parameters")
+
+      true ->
+        Map.put(snapshot, "function", function(conn, view, described, label))
+    end
+  end
+
+  defp function(conn, view, described, label) do
+    names =
+      case view.argument_names do
+        [] -> Enum.map(1..length(described.param_oids), &"arg#{&1}")
+        names -> Enum.map(names, &Atom.to_string/1)
+      end
+
+    if length(names) != length(described.param_oids) do
       Mix.raise(
-        "#{label}: a view takes no parameters, but the statement has #{length(described.param_oids)}"
+        "#{label}: the statement has #{length(described.param_oids)} parameters, but argument_names lists #{length(names)}"
       )
     end
 
     %{
-      "sql" => sql,
-      "materialized" => view.materialized?,
-      "primary_key" => Enum.map(view.primary_key, &Atom.to_string/1),
-      "params" => [],
-      "columns" => Enum.map(described.columns, &Query.column(conn, &1, view, label))
+      "arguments" => signature(conn, Enum.zip(names, described.param_oids)),
+      "returns" => signature(conn, Enum.map(described.columns, &{&1.name, &1.type_oid}))
     }
+  end
+
+  defp signature(conn, names_and_oids) do
+    for {name, oid} <- names_and_oids do
+      %{rows: [[type]]} = Postgrex.query!(conn, "select format_type($1, null)", [oid])
+      %{"name" => name, "type" => type}
+    end
   end
 
   defp read_snapshot(path) do
@@ -86,7 +117,7 @@ defmodule AshTypedSql.Codegen.View do
     end
   end
 
-  @definition ["sql", "materialized", "primary_key"]
+  @definition ["sql", "materialized", "primary_key", "function"]
 
   defp migrate?(nil, _new), do: true
   defp migrate?(old, new), do: Map.take(old, @definition) != Map.take(new, @definition)
@@ -94,7 +125,7 @@ defmodule AshTypedSql.Codegen.View do
   @doc """
   Returns the `{up, down}` statements that move the database from the `old` view snapshot to `new`.
 
-  Each direction uses `CREATE OR REPLACE VIEW` when Postgres accepts it, which codegen finds out by running it in a rolled-back transaction. Otherwise it drops and recreates the view and every view that depends on it, read from `pg_depend` and `pg_rewrite`.
+  Each direction uses `CREATE OR REPLACE VIEW`, or `CREATE OR REPLACE FUNCTION` for a parameterized view, when Postgres accepts it, which codegen finds out by running it in a rolled-back transaction. Otherwise it drops and recreates the view and every view that depends on it, read from `pg_depend` and `pg_rewrite`.
   """
   def migration(_conn, {schema, table}, nil, new, _label) do
     relation = Info.relation(schema, table)
@@ -123,13 +154,19 @@ defmodule AshTypedSql.Codegen.View do
     end
   end
 
+  defp replace(relation, %{"function" => _}, %{"function" => _} = to),
+    do: [create_function(relation, "create or replace", to)]
+
+  defp replace(_relation, %{"function" => _}, _to), do: []
+  defp replace(_relation, _from, %{"function" => _}), do: []
+
   defp replace(relation, %{"materialized" => false}, %{"materialized" => false} = to),
     do: ["create or replace view #{relation} as\n#{to["sql"]}"]
 
   defp replace(_relation, _from, _to), do: []
 
   defp rebuild(conn, relation, table, from, to) do
-    dependents = dependents(conn, relation)
+    dependents = if Map.has_key?(from, "function"), do: [], else: dependents(conn, relation)
 
     Enum.map(Enum.reverse(dependents), &drop(&1.relation, %{"materialized" => &1.materialized?})) ++
       [drop(relation, from)] ++
@@ -139,6 +176,9 @@ defmodule AshTypedSql.Codegen.View do
         &[create_view(&1.relation, &1.materialized?, &1.sql) | &1.indexes]
       )
   end
+
+  defp create(relation, _table, %{"function" => _} = view),
+    do: [create_function(relation, "create", view)]
 
   defp create(relation, _table, %{"materialized" => false} = view),
     do: [create_view(relation, false, view["sql"])]
@@ -154,6 +194,23 @@ defmodule AshTypedSql.Codegen.View do
 
   defp create_view(relation, false, sql), do: "create view #{relation} as\n#{sql}"
   defp create_view(relation, true, sql), do: "create materialized view #{relation} as\n#{sql}"
+
+  defp create_function(relation, verb, %{"function" => function} = view) do
+    arguments = Enum.map_join(function["arguments"], ", ", &~s("#{&1["name"]}" #{&1["type"]}))
+    returns = Enum.map_join(function["returns"], ", ", &~s("#{&1["name"]}" #{&1["type"]}))
+
+    """
+    #{verb} function #{relation}(#{arguments})
+    returns table (#{returns})
+    language sql stable
+    as $typed_sql$
+    #{view["sql"]}
+    $typed_sql$\
+    """
+  end
+
+  defp drop(relation, %{"function" => function}),
+    do: "drop function #{relation}(#{Enum.map_join(function["arguments"], ", ", & &1["type"])})"
 
   defp drop(relation, %{"materialized" => false}), do: "drop view #{relation}"
   defp drop(relation, %{"materialized" => true}), do: "drop materialized view #{relation}"

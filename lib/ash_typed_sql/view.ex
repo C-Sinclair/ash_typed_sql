@@ -28,6 +28,12 @@ defmodule AshTypedSql.View do
         doc:
           "Creates a materialized view with a unique index on `primary_key`, and adds a `:refresh` action."
       ],
+      argument_names: [
+        type: {:list, :atom},
+        default: [],
+        doc:
+          "Names for the positional parameters `$1..$n` of a parameterized view, in order. They become the read action's arguments."
+      ],
       type_overrides: [
         type: :keyword_list,
         default: [],

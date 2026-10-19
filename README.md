@@ -140,14 +140,35 @@ A changed view migrates with `CREATE OR REPLACE VIEW` when Postgres accepts it. 
 
 `materialized? true` generates `CREATE MATERIALIZED VIEW` instead, plus a unique index `<table>_primary_key_index` on `primary_key` and a `:refresh` generic action that runs `REFRESH MATERIALIZED VIEW CONCURRENTLY`. Schedule the refresh with `ash_oban`.
 
-### Open question: parameterized views
+### Parameterized views
 
-A view takes no arguments, so a query such as "stats since `$1`" cannot be a view. Two candidate designs:
+A view takes no arguments, so a `SELECT` with `$1..$n` parameters becomes a set-returning `LANGUAGE sql STABLE` function instead, named after the table. The parameters become required arguments of the generated `:read` action.
 
-- A set-returning `LANGUAGE sql` function, `customer_stats_since(timestamptz) RETURNS TABLE (...)`, with the function arguments becoming read action arguments. Postgres can inline such a function, so filters still reach the base tables.
-- A CTE added to the read's Ecto query with `with_cte/3`.
+```sql
+-- priv/typed_sql/views/customer_stats_since.sql
+select c.id as customer_id, count(o.id) as order_count
+from customers c
+left join orders o on o.customer_id = c.id and o.inserted_at >= $1
+group by c.id
+```
 
-Both need the read action to replace the `FROM` relation in the Ecto query `ash_postgres` builds. Whether `ash_postgres` exposes a public hook for that is unverified. If it does not, adding one is a candidate upstream PR.
+```elixir
+typed_view "views/customer_stats_since.sql" do
+  primary_key [:customer_id]
+  argument_names [:since]
+end
+```
+
+```elixir
+MyApp.Accounts.CustomerStatsSince
+|> Ash.Query.for_read(:read, %{since: ~U[2026-01-01 00:00:00Z]})
+|> Ash.Query.filter(order_count > 5)
+|> Ash.read!()
+```
+
+The read action's `modify_query` adds `WITH "customer_stats_since" AS (select * from "customer_stats_since"($1))` to the query, and the `FROM "customer_stats_since"` that `ash_postgres` builds reads it. Postgres inlines the function, so the filter and the `$1` condition reach the base tables.
+
+Filters, sorts, pagination and relationship loads work. A relationship into a parameterized view sets `read_action :read`, and the load passes the arguments with `Ash.Query.for_read/3`. A relationship filter, sort or aggregate into a parameterized view fails, because a filter cannot pass read arguments. A parameterized view cannot set a `postgres` `schema`.
 
 A `WITH` statement inside a query file needs no special support. Describe types it like any other statement, and `EXPLAIN` lists the writes made inside its CTEs.
 

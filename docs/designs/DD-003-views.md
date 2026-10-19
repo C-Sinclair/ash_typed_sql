@@ -1,9 +1,9 @@
 # DD-003 — Views
 
-**Status:** building
+**Status:** built
 **Date:** 2026-10-19
-**Decisions:** [ADR-003](../decisions/ADR-003-describe-at-codegen-compile-from-snapshots.md), [ADR-007](../decisions/ADR-007-view-migrations-ask-postgres-whether-replace-works.md)
-**Lands in:** `AshTypedSql.View` (the `typed_view` entity), `AshTypedSql.Transformers.GenerateView`, `AshTypedSql.Codegen.View`, `AshTypedSql.View.Refresh`
+**Decisions:** [ADR-003](../decisions/ADR-003-describe-at-codegen-compile-from-snapshots.md), [ADR-007](../decisions/ADR-007-view-migrations-ask-postgres-whether-replace-works.md), [ADR-009](../decisions/ADR-009-parameterized-views-are-functions-read-through-a-cte.md)
+**Lands in:** `AshTypedSql.View` (the `typed_view` entity), `AshTypedSql.Transformers.GenerateView`, `AshTypedSql.Codegen.View`, `AshTypedSql.View.Refresh`, `AshTypedSql.View.Arguments`
 
 ## What this is
 
@@ -14,6 +14,7 @@ A `.sql` file holding a `SELECT` becomes a Postgres view and a resource backed b
 1. A view resource's attributes have the types and nullability of the view's `SELECT` against its base tables.
 2. A relationship filter through a view resource runs as one SQL query.
 3. Changing a view's columns produces a migration that applies cleanly, including when other views depend on it.
+4. A parameterized view takes its parameters as read action arguments, and a filter on it runs as one SQL query that Postgres inlines.
 
 ## Who uses it
 
@@ -25,7 +26,7 @@ typed_view "views/customer_stats.sql" do
 end
 ```
 
-`sql_dir`, `snapshot_dir` and `type_overrides` work as they do for `query`. The developer adds relationships by hand. A `belongs_to` on a view column needs `define_attribute? false`, because the column is already an attribute. `mix ash.codegen` writes the snapshot and the view migration.
+`sql_dir`, `snapshot_dir` and `type_overrides` work as they do for `query`. A `SELECT` with `$1..$n` parameters makes a parameterized view, and `argument_names` names them as for `query`. The developer adds relationships by hand. A `belongs_to` on a view column needs `define_attribute? false`, because the column is already an attribute. `mix ash.codegen` writes the snapshot and the view migration.
 
 ## Non-goals
 
@@ -47,6 +48,7 @@ end
 - One attribute per column, and the `primary_key` attributes marked as such.
 - A primary `:read` action, when the resource declares no read action.
 - For `materialized? true`: `CREATE MATERIALIZED VIEW`, a unique index named `<table>_primary_key_index` on `primary_key`, and a `:refresh` generic action that runs through `AshTypedSql.View.Refresh`.
+- For a parameterized view ([ADR-009](../decisions/ADR-009-parameterized-views-are-functions-read-through-a-cte.md)): a `CREATE FUNCTION "<table>"(...) RETURNS TABLE (...) LANGUAGE sql STABLE` migration whose body is the SQL file, and a non-primary `:read` action with one required argument per parameter. Its `modify_query` adds `WITH "<table>" AS (select * from "<table>"($1, ...))`, which the `FROM "<table>"` built by `ash_postgres` then reads. A relationship into the view sets `read_action :read`.
 
 ## Trade-offs
 
@@ -61,7 +63,7 @@ Requiring a `primary_key` option costs one line per view. Inferring it from the 
 1. Plain views with attributes. Built.
 2. Dependency-ordered recreate. Built.
 3. Materialized views and `:refresh`. Built.
-4. Parameterized views, once the open risk below is closed.
+4. Parameterized views. Built.
 
 ## Where it stops
 
@@ -69,4 +71,8 @@ Refresh scheduling belongs to the application, through `ash_oban`.
 
 ## Open risks
 
-- Parameterized views. A view takes no arguments. The two candidates are a set-returning `LANGUAGE sql` function, which Postgres can inline, and a CTE added with Ecto's `with_cte/3`. Both replace the `FROM` relation of the query `ash_postgres` builds. The read action `modify_query` option in `ash` passes the Ecto query to an MFA, which may allow it. `ash_sql` refuses aggregates over read actions that use `modify_query` (`AshSql.Aggregate.Lateral`). Closing it: a spike replacing the `FROM` source in `modify_query`, with a filter and a relationship load.
+- Parameterized views were closed by a spike ([ADR-009](../decisions/ADR-009-parameterized-views-are-functions-read-through-a-cte.md)). Replacing `query.from` with a fragment fails in Ecto ([FF-191026-ecto-fragment-source-has-no-struct-select](../friction/FF-191026-ecto-fragment-source-has-no-struct-select.md)). A CTE named after the table works for filters, sorts, and relationship loads in both directions. What remains:
+  - A relationship filter, sort or aggregate into a parameterized view fails with `Ash.Error.Query.Required`, because a filter cannot pass read arguments.
+  - `ash_sql` refuses aggregates over read actions that use `modify_query` (`AshSql.Aggregate.Lateral`).
+  - Loads that `ash_sql` runs as lateral joins, such as a `has_many` with a sort and limit, are not verified.
+  - A parameterized view cannot set a `postgres` `schema`.
