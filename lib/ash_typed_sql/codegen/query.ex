@@ -2,7 +2,7 @@ defmodule AshTypedSql.Codegen.Query do
   @moduledoc """
   The `mix ash.codegen` step for `typed_sql` queries.
 
-  Describes every declared `.sql` file against the resource's repo database and writes one JSON snapshot per file. With `--check` it raises `Ash.Error.Framework.PendingCodegen` when a snapshot would change, and with `--dry-run` it prints the changes instead of writing them.
+  Describes every declared `.sql` file against the resource's repo database and writes one JSON snapshot per file. A query whose `as` opt-in the description contradicts is refused before any snapshot is written. With `--check` it raises `Ash.Error.Framework.PendingCodegen` when a snapshot would change, and with `--dry-run` it prints the changes instead of writing them.
   """
 
   alias AshTypedSql.Codegen.Describe
@@ -105,13 +105,20 @@ defmodule AshTypedSql.Codegen.Query do
 
     {kind, writes} = classify(conn, sql, length(described.param_oids))
 
-    %{
+    snapshot = %{
       "sql" => sql,
       "params" => Enum.map(described.param_oids, &type(conn, &1, query, label)),
       "columns" => Enum.map(described.columns, &column(conn, &1, query, label)),
       "kind" => kind,
       "writes" => writes
     }
+
+    with %{as: as} when not is_nil(as) <- query,
+         {:error, message} <- AshTypedSql.Crud.check(resource, query, snapshot) do
+      Mix.raise("#{label}: cannot be `as #{inspect(as)}`: #{message}")
+    end
+
+    snapshot
   end
 
   defp type(conn, oid, query, label) do

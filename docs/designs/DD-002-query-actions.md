@@ -1,6 +1,6 @@
 # DD-002 — Query actions
 
-**Status:** draft
+**Status:** building
 **Date:** 2026-10-19
 **Decisions:** [ADR-003](../decisions/ADR-003-describe-at-codegen-compile-from-snapshots.md), [ADR-004](../decisions/ADR-004-generic-actions-by-default.md), [ADR-005](../decisions/ADR-005-classify-statements-with-explain.md)
 **Lands in:** `AshTypedSql` (the `typed_sql` DSL section), `AshTypedSql.Run`, `AshTypedSql.Codegen.Query`

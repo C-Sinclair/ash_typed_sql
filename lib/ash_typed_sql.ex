@@ -36,6 +36,11 @@ defmodule AshTypedSql do
         type: {:one_of, [:read, :create, :update, :destroy, :mixed]},
         doc: "Overrides the kind classified from `EXPLAIN`."
       ],
+      as: [
+        type: {:one_of, [:read]},
+        doc:
+          "Generates a manual action of this type returning resource records, instead of a generic action. Refused when the snapshot contradicts it."
+      ],
       description: [type: :string, doc: "The action description."]
     ]
   }

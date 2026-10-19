@@ -1,0 +1,84 @@
+{
+  "columns": [
+    {
+      "name": "id",
+      "source": {
+        "column": "id",
+        "not_null": true,
+        "schema": "public",
+        "table": "orders"
+      },
+      "type": {
+        "type": "integer"
+      }
+    },
+    {
+      "name": "customer_id",
+      "source": {
+        "column": "customer_id",
+        "not_null": true,
+        "schema": "public",
+        "table": "orders"
+      },
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "total",
+      "source": {
+        "column": "total",
+        "not_null": true,
+        "schema": "public",
+        "table": "orders"
+      },
+      "type": {
+        "type": "decimal"
+      }
+    },
+    {
+      "name": "discount",
+      "source": {
+        "column": "discount",
+        "not_null": false,
+        "schema": "public",
+        "table": "orders"
+      },
+      "type": {
+        "type": "float"
+      }
+    },
+    {
+      "name": "inserted_at",
+      "source": {
+        "column": "inserted_at",
+        "not_null": true,
+        "schema": "public",
+        "table": "orders"
+      },
+      "type": {
+        "type": "utc_datetime_usec"
+      }
+    },
+    {
+      "name": "shipped_at",
+      "source": {
+        "column": "shipped_at",
+        "not_null": false,
+        "schema": "public",
+        "table": "orders"
+      },
+      "type": {
+        "type": "naive_datetime"
+      }
+    }
+  ],
+  "kind": "read",
+  "params": [
+    {
+      "type": "uuid"
+    }
+  ],
+  "sql": "select * from orders\nwhere customer_id = $1\norder by id\n",
+  "writes": []
+}
