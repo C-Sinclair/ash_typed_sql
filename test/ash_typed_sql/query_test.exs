@@ -148,6 +148,22 @@ defmodule AshTypedSql.QueryTest do
                |> Ash.run_action!()
     end
 
+    test "a get? query returns one row, nil, or a MultipleResults error" do
+      run = fn tier ->
+        Customer
+        |> Ash.ActionInput.for_action(:one_by_tier, %{tier: tier})
+        |> Ash.run_action()
+      end
+
+      assert {:ok, %Customer.OneByTierRow{name: "Ada"}} = run.(:gold)
+      assert {:ok, nil} = run.(:silver)
+
+      Repo.query!("insert into customers (name, tier) values ('Cy', 'gold')")
+
+      assert {:error, %Ash.Error.Invalid{errors: [%Ash.Error.Invalid.MultipleResults{count: 2}]}} =
+               run.(:gold)
+    end
+
     test "runs write queries and returns the written rows", %{customer_id: customer_id} do
       assert [%{id: order_id, total: total}] =
                Order

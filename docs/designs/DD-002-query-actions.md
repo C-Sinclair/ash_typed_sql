@@ -67,7 +67,7 @@ end
 
 Compilation raises a `Spark.Error.DslError` that names the parameter without an argument, the argument without a parameter, or the argument whose type Postgres stores differently. When the `.sql` file has changed since its snapshot, the query is skipped with a warning until `mix ash.codegen` runs. Codegen refuses the same count mismatch before it writes a snapshot.
 
-`AshTypedSql.Run` executes the fixed SQL through the resource's repo and casts each row through the row type. The SQL text is stored in the snapshot, so a `.sql` file edited after codegen has no effect until `mix ash.codegen` runs again.
+`AshTypedSql.Run` executes the fixed SQL through the resource's repo and casts each row through the row type. With `get? true` the action returns `MyApp.Accounts.Customer.TopCustomersRow` with `allow_nil? true`, and `AshTypedSql.Run` returns the one row, `nil` for no rows, or `Ash.Error.Invalid.MultipleResults` for more than one. `as :read` passes `get?` to the read action. `as :create | :update | :destroy` refuse `get?`, because those actions return one record already. The SQL text is stored in the snapshot, so a `.sql` file edited after codegen has no effect until `mix ash.codegen` runs again.
 
 Opt-in CRUD conditions, checked by `AshTypedSql.Crud.check/3`. `kind` is the `kind` option if set, else the classified kind.
 

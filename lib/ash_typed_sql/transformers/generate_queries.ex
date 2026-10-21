@@ -89,6 +89,7 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
 
     with {:ok, enums} <- define_enums(resource, snapshot, enums),
          :ok <- check_preparations(resource, query),
+         :ok <- check_get(resource, query),
          {:ok, arguments} <- match_arguments(dsl, resource, query, snapshot, record_params) do
       type = query.as || :action
 
@@ -118,6 +119,7 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
           kind: kind,
           writes: writes,
           as: query.as,
+          get?: query.get?,
           fields: fit && fit.fields,
           record_params: record_params
         })
@@ -154,6 +156,19 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
   end
 
   defp check_preparations(_resource, _query), do: :ok
+
+  defp check_get(resource, %{get?: true, as: as} = query)
+       when as in [:create, :update, :destroy] do
+    {:error,
+     DslError.exception(
+       module: resource,
+       path: [:typed_sql, :query, query.name, :get?],
+       message:
+         "#{query.path} is `as #{inspect(as)}`, and `get?` applies only to generic and read actions"
+     )}
+  end
+
+  defp check_get(_resource, _query), do: :ok
 
   defp match_arguments(dsl, resource, query, snapshot, record_params) do
     ash_type = &ash_type(resource, query, &1)
@@ -208,11 +223,12 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
   defp action_options(resource, %{as: nil} = query, snapshot, ash_type) do
     row = Module.concat(resource, Macro.camelize("#{query.name}_row"))
     define_row(row, query, snapshot, ash_type)
-    [returns: {:array, row}, run: {AshTypedSql.Run, query: query.name}]
+    returns = if query.get?, do: [returns: row, allow_nil?: true], else: [returns: {:array, row}]
+    returns ++ [run: {AshTypedSql.Run, query: query.name}]
   end
 
   defp action_options(_resource, %{as: :read} = query, _snapshot, _ash_type),
-    do: [manual: {AshTypedSql.ManualRead, query: query.name}]
+    do: [get?: query.get?, manual: {AshTypedSql.ManualRead, query: query.name}]
 
   defp action_options(_resource, query, _snapshot, _ash_type),
     do: [accept: [], manual: {AshTypedSql.ManualWrite, query: query.name}]

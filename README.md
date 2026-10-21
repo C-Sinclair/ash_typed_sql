@@ -59,6 +59,8 @@ Each `argument` binds the next positional parameter, so the first binds `$1`. `a
 
 `TopCustomersRow` is an `Ash.TypedStruct` with `id: :uuid`, `name: :string` and `lifetime_value: :decimal`. Each field's `allow_nil?` comes from the column's `NOT NULL` constraint where Postgres can trace the column back to a table. Computed columns such as `sum(...)` are nullable unless you say otherwise.
 
+`get? true` makes the action return one `TopCustomersRow` or `nil` instead of a list. A query that returns more than one row fails with `Ash.Error.Invalid.MultipleResults`. On an `as :read` query, `get? true` sets the read action's `get?`.
+
 ## How it works
 
 1. `mix ash.codegen` runs the AshTypedSql step. The step connects to your dev database and sends each `.sql` file as a prepared statement without executing it.

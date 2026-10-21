@@ -11,6 +11,7 @@ spark_locals_without_parens = [
   description: 1,
   function: 1,
   function: 2,
+  get?: 1,
   kind: 1,
   materialized?: 1,
   message: 1,

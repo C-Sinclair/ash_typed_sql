@@ -17,9 +17,20 @@ defmodule AshTypedSql.Run do
          {:ok, %{rows: rows}} <- repo.query(query.sql, params) do
       rows
       |> Enum.map(&Map.new(Enum.zip(query.columns, &1)))
-      |> then(&Ash.Type.cast_stored(input.action.returns, &1, input.action.constraints))
+      |> single(query.get?)
+      |> case do
+        {:error, error} -> {:error, error}
+        rows -> Ash.Type.cast_stored(input.action.returns, rows, input.action.constraints)
+      end
     end
   end
+
+  defp single(rows, false), do: rows
+  defp single([], true), do: nil
+  defp single([row], true), do: row
+
+  defp single(rows, true),
+    do: {:error, Ash.Error.Invalid.MultipleResults.exception(count: length(rows))}
 
   defp params(input, names) do
     names

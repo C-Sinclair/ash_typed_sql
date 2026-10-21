@@ -34,6 +34,11 @@ defmodule AshTypedSql.Test.Customer do
       argument :tier
     end
 
+    query :one_by_tier, "customers/by_tier.sql" do
+      get? true
+      argument :tier
+    end
+
     query :named, "customers/named.sql" do
       argument :name, :ci_string, allow_nil?: true
       argument :limit, default: 1, constraints: [min: 1, max: 100]

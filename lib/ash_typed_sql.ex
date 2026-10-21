@@ -44,6 +44,12 @@ defmodule AshTypedSql do
         doc:
           "Generates a manual action of this type returning resource records, instead of a generic action. Refused when the snapshot contradicts it."
       ],
+      get?: [
+        type: :boolean,
+        default: false,
+        doc:
+          "Returns one row or `nil` instead of a list. More than one row is an `Ash.Error.Invalid.MultipleResults` error. With `as :read`, sets the read action's `get?`."
+      ],
       description: [type: :string, doc: "The action description."]
     ]
   }
