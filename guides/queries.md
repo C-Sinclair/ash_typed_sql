@@ -43,6 +43,22 @@ query :recent_logins, "accounts/recent_logins.sql" do
 end
 ```
 
+## Your own row type
+
+`returns` names an `Ash.TypedStruct` to use instead of the generated row:
+
+```elixir
+query :top_customers, "accounts/top_customers.sql" do
+  returns MyApp.Accounts.TopCustomer
+  argument :since
+  argument :limit
+end
+```
+
+Compilation checks the struct against the snapshot. It needs one field per result column, each with the column's Postgres storage type, so `:ci_string` may narrow a `text` column. A field may be `allow_nil?: false` only when the column is never null or is listed in `not_null`. A mismatch is a compile error naming the field. `returns` cannot be combined with `as`, because those actions return resource records.
+
+`mix ash_typed_sql.gen.returns MyApp.Accounts.Customer top_customers` writes or rewrites the struct's fields from the snapshot. See the [Generators guide](generators.md).
+
 ## One row or nil
 
 `get? true` makes the action return one row or `nil` instead of a list. A query that returns more than one row fails with `Ash.Error.Invalid.MultipleResults`. On an `as :read` query, `get? true` sets the read action's `get?`.

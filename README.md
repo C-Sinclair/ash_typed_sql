@@ -77,6 +77,20 @@ end
 
 `get? true` makes the action return one `TopCustomersRow` or `nil` instead of a list. A query that returns more than one row fails with `Ash.Error.Invalid.MultipleResults`. On an `as :read` query, `get? true` sets the read action's `get?`.
 
+`returns MyApp.Accounts.TopCustomer` names your own `Ash.TypedStruct` as the row type instead of `TopCustomersRow`. The action returns a list of it, or one with `get? true`. Compilation checks the struct's fields against the result columns: same names, same Postgres storage types, and `allow_nil?: false` only on a column that is never null. `returns` cannot be combined with `as` ([ADR-018](docs/decisions/ADR-018-returns-names-the-row-type.md)).
+
+## Generators
+
+Three Igniter tasks edit a resource and write its snapshot in one step. Each describes the SQL or table against the resource's repo with the same functions `mix ash.codegen` calls, and fails with the codegen error when Postgres refuses it.
+
+```bash
+mix ash_typed_sql.gen.query MyApp.Accounts.Customer priv/typed_sql/accounts/top_customers.sql --args since,limit --returns MyApp.Accounts.TopCustomer
+mix ash_typed_sql.gen.returns MyApp.Accounts.Customer top_customers
+mix ash_typed_sql.gen.table MyApp.Shelf.Book books --schema shelf --relationships
+```
+
+`gen.query` adds the `query` with one typed `argument` per parameter and, with `--returns`, writes the struct when it does not exist. `gen.returns` rewrites a query's `returns` struct from a fresh snapshot. `gen.table` adds `typed_table`. The [Generators guide](guides/generators.md) lists every option.
+
 ## How it works
 
 1. `mix ash.codegen` runs the AshTypedSql step. The step connects to your dev database and sends each `.sql` file as a prepared statement without executing it.

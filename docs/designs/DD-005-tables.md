@@ -3,7 +3,7 @@
 **Status:** built
 **Date:** 2026-10-21
 **Decisions:** [ADR-003](../decisions/ADR-003-describe-at-codegen-compile-from-snapshots.md), [ADR-014](../decisions/ADR-014-typed-table-describes-and-never-migrates.md), [ADR-015](../decisions/ADR-015-belongs-to-destinations-come-from-references.md), [ADR-016](../decisions/ADR-016-writes-check-compares-schema-and-table.md), [ADR-017](../decisions/ADR-017-missing-snapshots-generate-placeholders.md)
-**Lands in:** `AshTypedSql.Table`, `AshTypedSql.Table.Info`, `AshTypedSql.Codegen.Table`, `AshTypedSql.Transformers.GenerateTable`
+**Lands in:** `AshTypedSql.Table`, `AshTypedSql.Table.Info`, `AshTypedSql.Codegen.Table`, `AshTypedSql.Transformers.GenerateTable`, `Mix.Tasks.AshTypedSql.Gen.Table`
 
 ## What this is
 
@@ -19,7 +19,7 @@ A `typed_table "orders"` entity that turns an existing Postgres table into the a
 
 ## Who uses it
 
-The developer whose tables come from `ash_postgres` migrations, hand-written migrations, or another service, and who wants `typed_sql` CRUD opt-ins or plain Ash reads over them. They add `AshTypedSql.Table` to `extensions`, declare `typed_table`, and run `mix ash.codegen`. A reviewer reads `priv/typed_sql/snapshots/tables/<schema>/<table>.json` in the diff when a column changes.
+The developer whose tables come from `ash_postgres` migrations, hand-written migrations, or another service, and who wants `typed_sql` CRUD opt-ins or plain Ash reads over them. They add `AshTypedSql.Table` to `extensions`, declare `typed_table`, and run `mix ash.codegen`. `mix ash_typed_sql.gen.table MyApp.Book books --schema shelf --relationships` does all three through `Mix.Tasks.AshTypedSql.Gen.Table`, which describes the table with `AshTypedSql.Codegen.Table.snapshot/3` and fails with that function's error when the table is missing. A reviewer reads `priv/typed_sql/snapshots/tables/<schema>/<table>.json` in the diff when a column changes.
 
 ## Non-goals
 

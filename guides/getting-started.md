@@ -66,6 +66,8 @@ end
 
 The first `argument` binds `$1` and the second binds `$2`. The query path is relative to `sql_dir`, which defaults to `priv/typed_sql`.
 
+`mix ash_typed_sql.gen.query MyApp.Accounts.Customer priv/typed_sql/accounts/top_customers.sql --args since,limit` makes the same edit, with each argument's type written out, and writes the snapshot as well. See the [Generators guide](generators.md).
+
 ## Run `mix ash.codegen`
 
 Compilation needs a snapshot of the query. `mix ash.codegen` connects to the dev database, asks Postgres to describe the statement, and writes the snapshot:

@@ -47,7 +47,8 @@ defmodule AshTypedSql.MixProject do
         "guides/views.md",
         "guides/functions.md",
         "guides/multitenancy.md",
-        "guides/codegen-and-snapshots.md"
+        "guides/codegen-and-snapshots.md",
+        "guides/generators.md"
       ],
       skip_undefined_reference_warnings_on: ["README.md"],
       groups_for_extras: [Guides: ~r{guides/}],
