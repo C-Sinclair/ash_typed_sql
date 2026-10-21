@@ -277,6 +277,10 @@ end
 
 Design docs and decision records live in [`docs/`](docs/designs/INDEX.md).
 
+## Multitenancy
+
+AshTypedSql runs the SQL in your files as written, so Ash's tenant never reaches it. Every generated read, create, update and destroy action sets `multitenancy :bypass`, which covers `as` queries and `typed_view` reads. Generic query actions ignore the tenant too. A query that must be tenant-scoped takes the tenant as an `argument` and filters on it in SQL ([ADR-012](docs/decisions/ADR-012-typed-sql-actions-bypass-multitenancy.md)).
+
 ## Scope
 
 Postgres only. SQLite's `sqlite3_prepare` reports declared result column types but no parameter types, so a SQLite adapter would have to guess argument types.

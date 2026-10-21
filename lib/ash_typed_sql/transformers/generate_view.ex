@@ -141,6 +141,7 @@ defmodule AshTypedSql.Transformers.GenerateView do
       Transformer.build_entity!(Ash.Resource.Dsl, [:actions], :read,
         name: :read,
         arguments: arguments,
+        multitenancy: :bypass,
         modify_query: {source, :modify, []}
       )
 
@@ -154,7 +155,8 @@ defmodule AshTypedSql.Transformers.GenerateView do
       read =
         Transformer.build_entity!(Ash.Resource.Dsl, [:actions], :read,
           name: :read,
-          primary?: true
+          primary?: true,
+          multitenancy: :bypass
         )
 
       Transformer.add_entity(dsl, [:actions], read)

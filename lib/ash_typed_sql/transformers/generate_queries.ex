@@ -100,6 +100,7 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
           type,
           Enum.reject(
             [name: query.name, description: query.description, arguments: arguments] ++
+              multitenancy(type) ++
               preparations(query) ++
               action_options(resource, query, snapshot, &ash_type(resource, query, &1)),
             &is_nil(elem(&1, 1))
@@ -132,6 +133,10 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
       {:ok, dsl, enums}
     end
   end
+
+  # Ash generic actions take no `multitenancy` option and never require a tenant, and `AshTypedSql.Run` ignores it.
+  defp multitenancy(:action), do: []
+  defp multitenancy(_type), do: [multitenancy: :bypass]
 
   # Ash create, update and destroy actions hold validations in `changes`, and have no preparations.
   defp preparations(%{as: as} = query) when as in [:create, :update, :destroy],

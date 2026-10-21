@@ -2,7 +2,7 @@
 
 **Status:** built
 **Date:** 2026-10-19
-**Decisions:** [ADR-003](../decisions/ADR-003-describe-at-codegen-compile-from-snapshots.md), [ADR-007](../decisions/ADR-007-view-migrations-ask-postgres-whether-replace-works.md), [ADR-010](../decisions/ADR-010-parameterized-views-are-functions-read-through-a-cte.md), [ADR-011](../decisions/ADR-011-query-arguments-are-ash-arguments-mapped-by-position.md)
+**Decisions:** [ADR-003](../decisions/ADR-003-describe-at-codegen-compile-from-snapshots.md), [ADR-007](../decisions/ADR-007-view-migrations-ask-postgres-whether-replace-works.md), [ADR-010](../decisions/ADR-010-parameterized-views-are-functions-read-through-a-cte.md), [ADR-011](../decisions/ADR-011-query-arguments-are-ash-arguments-mapped-by-position.md), [ADR-012](../decisions/ADR-012-typed-sql-actions-bypass-multitenancy.md)
 **Lands in:** `AshTypedSql.View` (the `typed_view` entity), `AshTypedSql.Transformers.GenerateView`, `AshTypedSql.Codegen.View`, `AshTypedSql.View.Refresh`, `AshTypedSql.View.Arguments`
 
 ## What this is
@@ -26,7 +26,7 @@ typed_view "views/customer_stats.sql" do
 end
 ```
 
-`sql_dir`, `snapshot_dir` and `type_overrides` work as they do for `query`. A `SELECT` with `$1..$n` parameters makes a parameterized view, and declares one `argument` per parameter as for `query`. The arguments become the read action's arguments, with their options. `typed_view` takes no `validate` or `prepare`. The developer adds relationships by hand. A `belongs_to` on a view column needs `define_attribute? false`, because the column is already an attribute. `mix ash.codegen` writes the snapshot and the view migration.
+`sql_dir`, `snapshot_dir` and `type_overrides` work as they do for `query`. A `SELECT` with `$1..$n` parameters makes a parameterized view, and declares one `argument` per parameter as for `query`. The arguments become the read action's arguments, with their options. `typed_view` takes no `validate` or `prepare`. The developer adds relationships by hand. A `belongs_to` on a view column needs `define_attribute? false`, because the column is already an attribute. `mix ash.codegen` writes the snapshot and the view migration. The generated read action sets `multitenancy :bypass`, so a view resource ignores a tenant ([ADR-012](../decisions/ADR-012-typed-sql-actions-bypass-multitenancy.md)).
 
 ## Non-goals
 

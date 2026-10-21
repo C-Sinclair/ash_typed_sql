@@ -5,6 +5,7 @@ defmodule AshTypedSql.Test.Domain do
   resources do
     resource(AshTypedSql.Test.Customer)
     resource(AshTypedSql.Test.Order)
+    resource(AshTypedSql.Test.TenantOrder)
   end
 end
 
@@ -139,5 +140,55 @@ defmodule AshTypedSql.Test.NotifyPreparation do
   def prepare(query_or_input, _opts, _context) do
     send(self(), {:prepared, query_or_input.action.name})
     query_or_input
+  end
+end
+
+defmodule AshTypedSql.Test.TenantOrder do
+  @moduledoc false
+  use Ash.Resource,
+    domain: AshTypedSql.Test.Domain,
+    data_layer: AshPostgres.DataLayer,
+    extensions: [AshTypedSql]
+
+  postgres do
+    table("orders")
+    repo(AshTypedSql.Test.Repo)
+    migrate?(false)
+  end
+
+  multitenancy do
+    strategy(:attribute)
+    attribute(:customer_id)
+  end
+
+  typed_sql do
+    sql_dir "test/support/typed_sql"
+    snapshot_dir "test/support/typed_sql/snapshots"
+
+    query :order_totals, "orders/order_totals.sql"
+
+    query :for_customer, "orders/for_customer.sql" do
+      argument :customer_id
+      as :read
+    end
+
+    query :place_order, "orders/place_order.sql" do
+      argument :customer_id
+      argument :total
+      as :create
+    end
+
+    query :remove_order, "orders/remove_order.sql" do
+      as :destroy
+    end
+  end
+
+  attributes do
+    integer_primary_key(:id)
+    attribute(:customer_id, :uuid, allow_nil?: false, public?: true)
+    attribute(:total, :decimal, allow_nil?: false, public?: true)
+    attribute(:discount, :float, public?: true)
+    attribute(:inserted_at, :utc_datetime_usec, allow_nil?: false, public?: true)
+    attribute(:shipped_at, :naive_datetime, public?: true)
   end
 end
