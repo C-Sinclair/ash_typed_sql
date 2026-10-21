@@ -111,8 +111,14 @@ defmodule AshTypedSql.Codegen.Query do
 
     described =
       case Describe.describe(describe_conn, sql) do
-        {:ok, described} -> described
-        {:error, error} -> Mix.raise("#{label}: Postgres refused the statement: #{error.message}")
+        {:ok, described} ->
+          described
+
+        {:error, error} ->
+          Mix.raise(
+            Describe.location(source_file(resource, query), sql, error.position) <>
+              "#{label}: Postgres refused the statement: #{error.message}"
+          )
       end
 
     names = Enum.map(described.columns, & &1.name)
@@ -158,6 +164,9 @@ defmodule AshTypedSql.Codegen.Query do
 
     snapshot
   end
+
+  defp source_file(resource, %{path: nil}), do: inspect(resource)
+  defp source_file(resource, query), do: Info.sql_path(resource, query.path)
 
   @doc false
   def type(conn, oid, query, label) do

@@ -89,4 +89,24 @@ defmodule AshTypedSql.Codegen.Describe do
     |> Map.new(fn <<code, value::binary>> -> {<<code>>, value} end)
     |> then(&%{message: &1["M"], code: &1["C"], position: &1["P"]})
   end
+
+  @doc """
+  Returns the `file:line:column: ` prefix for a Postgres error `position` in `sql`, or `file: ` when Postgres gave none.
+
+  `position` is the 1-based character offset Postgres reports. `offset` counts characters of the file that precede `sql`, such as leading whitespace codegen trimmed off.
+  """
+  @spec location(String.t(), String.t(), String.t() | integer() | nil, non_neg_integer()) ::
+          String.t()
+  def location(file, sql, position, offset \\ 0)
+
+  def location(file, _sql, nil, _offset), do: "#{file}: "
+
+  def location(file, sql, position, offset) when is_binary(position),
+    do: location(file, sql, String.to_integer(position), offset)
+
+  def location(file, sql, position, offset) do
+    before = String.slice(sql, 0, position - 1 + offset)
+    lines = String.split(before, "\n")
+    "#{file}:#{length(lines)}:#{String.length(List.last(lines)) + 1}: "
+  end
 end

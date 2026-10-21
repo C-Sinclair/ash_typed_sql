@@ -87,6 +87,12 @@ end
 
 `mix ash.codegen --check` fails when a `.sql` file or the database schema has drifted from its snapshot.
 
+When Postgres refuses a statement, `mix ash.codegen` names the file, line and column it pointed at, followed by the Postgres message:
+
+```
+priv/typed_sql/accounts/top_customers.sql:4:6: MyApp.Accounts.Customer query :top_customers (accounts/top_customers.sql): Postgres refused the statement: syntax error at or near "id"
+```
+
 ## Generic actions, and what Postgres says about CRUD
 
 Every query becomes a generic action by default. A generic action promises only "arguments in, typed value out", which is exactly what the describe step can prove.

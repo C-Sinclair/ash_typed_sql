@@ -31,7 +31,17 @@ defmodule AshTypedSql.Codegen.View do
         view = Info.typed_view(resource)
         path = Info.snapshot_path(view)
         label = "#{inspect(resource)} view (#{view.path})"
-        new = snapshot(conn, describe_conn, File.read!(Info.sql_path(view)), view, label)
+
+        new =
+          snapshot(
+            conn,
+            describe_conn,
+            File.read!(Info.sql_path(view)),
+            view,
+            label,
+            Info.sql_path(view)
+          )
+
         old = read_snapshot(path)
         snapshot_file = {path, Jason.encode!(new, pretty: true) <> "\n"}
 
@@ -55,13 +65,21 @@ defmodule AshTypedSql.Codegen.View do
   end
 
   @doc "Describes a view's `SELECT` and returns its snapshot as a JSON-ready map."
-  def snapshot(conn, describe_conn, sql, view, label) do
-    sql = trim_sql(sql)
+  def snapshot(conn, describe_conn, file_sql, view, label, file \\ nil) do
+    sql = trim_sql(file_sql)
 
     described =
       case Describe.describe(describe_conn, sql) do
-        {:ok, described} -> described
-        {:error, error} -> Mix.raise("#{label}: Postgres refused the statement: #{error.message}")
+        {:ok, described} ->
+          described
+
+        {:error, error} ->
+          leading = String.length(file_sql) - String.length(String.trim_leading(file_sql))
+
+          Mix.raise(
+            Describe.location(file || view.path, file_sql, error.position, leading) <>
+              "#{label}: Postgres refused the statement: #{error.message}"
+          )
       end
 
     names = Enum.map(view.arguments, & &1.name)

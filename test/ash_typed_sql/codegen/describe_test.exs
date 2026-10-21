@@ -41,4 +41,9 @@ defmodule AshTypedSql.Codegen.DescribeTest do
     {:ok, pid} = Postgrex.start_link(AshTypedSql.Test.Schema.config())
     pid
   end
+
+  test "location counts lines and columns in characters, after any trimmed prefix" do
+    assert Describe.location("a.sql", "\n\nselect é,\n  wher", 13, 2) == "a.sql:4:3: "
+    assert Describe.location("a.sql", "select 1", nil) == "a.sql: "
+  end
 end

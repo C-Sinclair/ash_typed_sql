@@ -5,7 +5,7 @@ defmodule AshTypedSql.Codegen.Function do
   Reads every declared function from `pg_proc` in the resource's repo database and writes one JSON snapshot per function. `--check` and `--dry-run` behave as they do for `AshTypedSql.Codegen.Query`.
   """
 
-  alias AshTypedSql.Codegen.{Migration, Query}
+  alias AshTypedSql.Codegen.{Describe, Migration, Query}
   alias AshTypedSql.Functions.Info
   alias AshTypedSql.TypeMap
 
@@ -94,13 +94,20 @@ defmodule AshTypedSql.Codegen.Function do
             Postgrex.rollback(conn, {snapshot, written(conn, function)})
 
           {:error, error} ->
-            Postgrex.rollback(conn, {:error, Exception.message(error)})
+            position = if is_struct(error, Postgrex.Error), do: error.postgres[:position]
+            Postgrex.rollback(conn, {:error, position, Exception.message(error)})
         end
       end)
 
     case result do
-      {:error, message} -> Mix.raise("#{label}: Postgres refused the file: #{message}")
-      result -> result
+      {:error, position, message} ->
+        Mix.raise(
+          Describe.location(Info.sql_path(resource, function), sql, position) <>
+            "#{label}: Postgres refused the file: #{message}"
+        )
+
+      result ->
+        result
     end
   end
 

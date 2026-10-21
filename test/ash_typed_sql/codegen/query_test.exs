@@ -22,4 +22,20 @@ defmodule AshTypedSql.Codegen.QueryTest do
 
     assert_raise Ash.Error.Framework.PendingCodegen, fn -> Query.run(["--check"]) end
   end
+
+  test "a statement Postgres refuses is reported at its file, line and column" do
+    config = AshTypedSql.Test.Schema.config()
+    {:ok, conn} = Postgrex.start_link(config)
+    {:ok, describe_conn} = AshTypedSql.Codegen.Describe.connect(config)
+
+    on_exit(fn -> AshTypedSql.Codegen.Describe.disconnect(describe_conn) end)
+
+    query = %AshTypedSql.Query{name: :syntax_error, path: "customers/syntax_error.sql"}
+
+    error =
+      assert_raise Mix.Error, fn -> Query.snapshot(conn, describe_conn, Customer, query) end
+
+    assert error.message ==
+             ~s(test/support/typed_sql/customers/syntax_error.sql:4:6: AshTypedSql.Test.Customer query :syntax_error \(customers/syntax_error.sql\): Postgres refused the statement: syntax error at or near "id")
+  end
 end
