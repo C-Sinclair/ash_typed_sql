@@ -30,6 +30,7 @@ spark_locals_without_parens = [
   query: 3,
   references: 1,
   relationships?: 1,
+  returns: 1,
   schema: 1,
   sensitive?: 1,
   snapshot_dir: 1,

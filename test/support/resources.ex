@@ -31,6 +31,19 @@ defmodule AshTypedSql.Test.Customer do
       argument :limit
     end
 
+    query :top_customer_records, "customers/top_customers.sql" do
+      returns AshTypedSql.Test.TopCustomer
+      argument :since
+      argument :limit
+    end
+
+    query :top_customer_record, "customers/top_customers.sql" do
+      returns AshTypedSql.Test.TopCustomer
+      get? true
+      argument :since
+      argument :limit
+    end
+
     query :by_tier, "customers/by_tier.sql" do
       argument :tier
     end

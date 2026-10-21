@@ -63,7 +63,8 @@ defmodule AshTypedSql.MixProject do
           AshTypedSql.Run,
           AshTypedSql.ManualRead,
           AshTypedSql.ManualWrite,
-          AshTypedSql.Records
+          AshTypedSql.Records,
+          AshTypedSql.Returns
         ],
         "Typed views": [~r/^AshTypedSql\.View/],
         "Typed functions": [~r/^AshTypedSql\.Functions?/],

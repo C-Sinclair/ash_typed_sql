@@ -13,7 +13,8 @@ defmodule AshTypedSql do
     examples: [
       ~s|query :top_customers, "accounts/top_customers.sql"|,
       ~s|query :ping, sql: "select 1 as one"|,
-      ~s|query :ping, sql: ~SQL"select 1 as one"|
+      ~s|query :ping, sql: ~SQL"select 1 as one"|,
+      ~s|query :top_customers, "accounts/top_customers.sql", returns: MyApp.Accounts.TopCustomer|
     ],
     target: AshTypedSql.Query,
     args: [:name, {:optional, :path}],
@@ -66,6 +67,11 @@ defmodule AshTypedSql do
         type: :boolean,
         doc:
           "Adds a resource-level code interface for the generated action, named after it, with the arguments as positional `args`. Defaults to the section's `define_interface?`."
+      ],
+      returns: [
+        type: :atom,
+        doc:
+          "An `Ash.TypedStruct` module each row is cast to, in place of the generated `*Row` type. Its fields must match the snapshot's result columns. Refused with `as`."
       ],
       get?: [
         type: :boolean,
