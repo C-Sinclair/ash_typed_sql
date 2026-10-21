@@ -326,6 +326,8 @@ def deps do
 end
 ```
 
+Or run `mix igniter.install ash_typed_sql`. The guides are on [hexdocs](https://hexdocs.pm/ash_typed_sql).
+
 ## Examples
 
 - [`examples/simple`](examples/simple): a bookshelf app with no web layer that uses every feature through generated code interfaces.
