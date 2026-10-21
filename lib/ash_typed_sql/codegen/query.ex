@@ -20,9 +20,6 @@ defmodule AshTypedSql.Codegen.Query do
     :parameters
   ]
 
-  @doc false
-  def connection_config(config), do: Keyword.take(config, @connection_keys)
-
   def run(argv) do
     opts = parse_args(argv)
 

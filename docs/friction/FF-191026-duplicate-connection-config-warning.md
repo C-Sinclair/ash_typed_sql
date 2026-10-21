@@ -26,3 +26,5 @@ Nothing. The example does not change the library.
 ## What would fix it
 
 Delete one of the two definitions.
+
+**Resolved:** 2026-10-21. The second `connection_config/1` in `AshTypedSql.Codegen.Query` is deleted, and the library compiles with no warning.
