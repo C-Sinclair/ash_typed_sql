@@ -79,6 +79,7 @@ defmodule AshTypedSql.Test.Views.CustomerTiers do
     snapshot_dir "test/support/typed_sql/snapshots"
     primary_key [:customer_id]
     materialized? true
+    define_interface?(true)
   end
 
   postgres do
@@ -97,6 +98,7 @@ defmodule AshTypedSql.Test.Views.CustomerStatsSince do
     sql_dir "test/support/typed_sql"
     snapshot_dir "test/support/typed_sql/snapshots"
     primary_key [:customer_id]
+    define_interface?(true)
     not_null [:order_count]
     argument :since
   end

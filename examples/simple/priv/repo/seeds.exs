@@ -10,7 +10,7 @@ books =
         {"Italo Calvino", "Invisible Cities", ~D[1972-11-01]}
       ],
       into: %{} do
-    [%{id: id}] = Library.add_book!(author, title, published_on)
+    [%{id: id}] = Library.Catalog.add_book!(author, title, published_on)
     {title, id}
   end
 
@@ -21,7 +21,7 @@ for {title, rating, body} <- [
       {"Kindred", 5, "Could not put it down."},
       {"Invisible Cities", 4, nil}
     ] do
-  Library.add_review!(books[title], rating, body)
+  Library.Catalog.add_review!(books[title], rating, body)
 end
 
 for {title, borrower, due_in_days} <- [
@@ -31,9 +31,9 @@ for {title, borrower, due_in_days} <- [
       {"Invisible Cities", "grace", 14},
       {"Kindred", "linus", 21}
     ] do
-  Library.lend_book!(books[title], borrower, Date.add(today, due_in_days))
+  Library.Loan.lend_book!(books[title], borrower, Date.add(today, due_in_days))
 end
 
-Library.refresh_book_stats!()
+Library.BookStats.refresh!()
 
 IO.puts("Seeded #{map_size(books)} books, 5 reviews and 5 loans.")

@@ -1,20 +1,20 @@
 # examples/simple
 
-A bookshelf app with no web layer, driven entirely by SQL. The schema is plain SQL in an Ecto migration. Every resource holds only `typed_sql`, `typed_view` and `typed_sql_functions` sections, relationships, and the code interfaces in the `Library` domain. Attributes and actions come from the snapshots that `mix ash.codegen` writes.
+A bookshelf app with no web layer, driven entirely by SQL. The schema is plain SQL in an Ecto migration. Every resource holds only `typed_sql`, `typed_view` and `typed_sql_functions` sections, relationships, and `define_interface? true`. The code interfaces are generated on each resource, and the `Library` domain defines only `get_book`. Attributes and actions come from the snapshots that `mix ash.codegen` writes.
 
 ## What it shows
 
 | Feature | Resource | SQL | Code interface |
 |---|---|---|---|
-| View with relationships | `Library.Catalog` | `priv/typed_sql/views/catalog.sql` | `Library.list_catalog/0`, `Library.get_book/1` |
-| Materialized view with `:refresh` | `Library.BookStats` | `priv/typed_sql/views/book_stats.sql` | `Library.list_book_stats/0`, `Library.refresh_book_stats/0` |
-| Parameterized view | `Library.LoansDueBy` | `priv/typed_sql/views/loans_due_by.sql` | `Library.loans_due_by/1` |
-| Read query as a generic action | `Library.Loan` | `priv/typed_sql/loans/top_borrowers.sql` | `Library.top_borrowers/1` |
-| Write queries as generic actions | `Library.Catalog` | `priv/typed_sql/catalog/add_book.sql`, `add_review.sql` | `Library.add_book/3`, `Library.add_review/3` |
-| `as :read` | `Library.Loan` | `priv/typed_sql/loans/loans_for.sql` | `Library.loans_for/1` |
-| `as :create` | `Library.Loan` | `priv/typed_sql/loans/lend_book.sql` | `Library.lend_book/3` |
-| `as :update` | `Library.Loan` | `priv/typed_sql/loans/return_book.sql` | `Library.return_book/1` |
-| `as :destroy` | `Library.Loan` | `priv/typed_sql/loans/cancel_loan.sql` | `Library.cancel_loan/1` |
+| View with relationships | `Library.Catalog` | `priv/typed_sql/views/catalog.sql` | `Library.Catalog.read/0`, `Library.get_book/1` |
+| Materialized view with `:refresh` | `Library.BookStats` | `priv/typed_sql/views/book_stats.sql` | `Library.BookStats.read/0`, `Library.BookStats.refresh/0` |
+| Parameterized view | `Library.LoansDueBy` | `priv/typed_sql/views/loans_due_by.sql` | `Library.LoansDueBy.read/1` |
+| Read query as a generic action | `Library.Loan` | `priv/typed_sql/loans/top_borrowers.sql` | `Library.Loan.top_borrowers/1` |
+| Write queries as generic actions | `Library.Catalog` | `priv/typed_sql/catalog/add_book.sql`, `add_review.sql` | `Library.Catalog.add_book/3`, `Library.Catalog.add_review/3` |
+| `as :read` | `Library.Loan` | `priv/typed_sql/loans/loans_for.sql` | `Library.Loan.loans_for/1` |
+| `as :create` | `Library.Loan` | `priv/typed_sql/loans/lend_book.sql` | `Library.Loan.lend_book/3` |
+| `as :update` | `Library.Loan` | `priv/typed_sql/loans/return_book.sql` | `Library.Loan.return_book/1` |
+| `as :destroy` | `Library.Loan` | `priv/typed_sql/loans/cancel_loan.sql` | `Library.Loan.cancel_loan/1` |
 | SQL function as a custom expression | `Library.Loan` | `priv/typed_sql/functions/days_overdue.sql` | `days_overdue(due_on, ^today)` in a filter |
 
 `add_book.sql` upserts the author and inserts the book in one statement, so `EXPLAIN` classifies it as `:mixed`. It stays a generic action.

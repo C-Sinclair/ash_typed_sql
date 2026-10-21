@@ -149,9 +149,16 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
         dsl
         |> Transformer.add_entity([:actions], action)
         |> Transformer.persist(:ash_typed_sql_queries, queries)
+        |> define_interface(query, arguments)
 
       {:ok, dsl, enums}
     end
+  end
+
+  defp define_interface(dsl, query, arguments) do
+    if AshTypedSql.Interface.enabled?(dsl, query.define_interface?),
+      do: AshTypedSql.Interface.define(dsl, query.name, query.name, arguments),
+      else: dsl
   end
 
   # Ash generic actions take no `multitenancy` option and never require a tenant, and `AshTypedSql.Run` ignores it.

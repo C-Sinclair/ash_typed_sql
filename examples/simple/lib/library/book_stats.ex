@@ -9,6 +9,7 @@ defmodule Library.BookStats do
     primary_key [:book_id]
     not_null [:review_count]
     materialized? true
+    define_interface?(true)
   end
 
   postgres do

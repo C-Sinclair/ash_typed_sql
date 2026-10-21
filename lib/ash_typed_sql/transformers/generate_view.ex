@@ -72,6 +72,7 @@ defmodule AshTypedSql.Transformers.GenerateView do
         |> Enum.reduce(dsl, &Transformer.add_entity(&2, [:attributes], &1, type: :append))
         |> add_read_action(resource, arguments, snapshot)
         |> add_refresh_action(view)
+        |> define_interface(view, arguments)
 
       {:ok, dsl}
     else
@@ -191,6 +192,18 @@ defmodule AshTypedSql.Transformers.GenerateView do
     )
 
     module
+  end
+
+  defp define_interface(dsl, view, arguments) do
+    if AshTypedSql.Interface.enabled?(dsl, view.define_interface?) do
+      dsl = AshTypedSql.Interface.define(dsl, :read, :read, arguments)
+
+      if view.materialized?,
+        do: AshTypedSql.Interface.define(dsl, :refresh, :refresh, []),
+        else: dsl
+    else
+      dsl
+    end
   end
 
   defp add_refresh_action(dsl, %{materialized?: false}), do: dsl

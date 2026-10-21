@@ -10,6 +10,8 @@ defmodule Library.Catalog do
   end
 
   typed_sql do
+    define_interface?(true)
+
     query :add_book, "catalog/add_book.sql" do
       argument :author_name
       argument :title

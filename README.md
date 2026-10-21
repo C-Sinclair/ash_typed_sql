@@ -299,6 +299,27 @@ end
 
 Design docs and decision records live in [`docs/`](docs/designs/INDEX.md).
 
+## Code interfaces
+
+`define_interface? true` adds a resource-level code interface for each generated action. Set it on the `typed_sql` section, or on one `query` or `typed_view` to override the section. A query's function is named after the query and takes its arguments in order. A view gets `read`, and `refresh` when it is materialized. Trailing arguments with a default or `allow_nil? true` are optional.
+
+```elixir
+typed_sql do
+  define_interface? true
+
+  query :lend_book, "loans/lend_book.sql" do
+    argument :book_id
+    argument :borrower
+    argument :due_on
+    as :create
+  end
+end
+
+Library.Loan.lend_book!(book_id, "ada", ~D[2026-11-01])
+```
+
+The functions go on the resource, not the domain, because a resource extension cannot add `define` entries to its domain ([ADR-013](docs/decisions/ADR-013-define-interface-on-the-resource.md)). An interface you define yourself under the same name is kept.
+
 ## Multitenancy
 
 AshTypedSql runs the SQL in your files as written, so Ash's tenant never reaches it. Every generated read, create, update and destroy action sets `multitenancy :bypass`, which covers `as` queries and `typed_view` reads. Generic query actions ignore the tenant too. A query that must be tenant-scoped takes the tenant as an `argument` and filters on it in SQL ([ADR-012](docs/decisions/ADR-012-typed-sql-actions-bypass-multitenancy.md)).

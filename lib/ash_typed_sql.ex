@@ -62,6 +62,11 @@ defmodule AshTypedSql do
         doc:
           "Generates a manual action of this type returning resource records, instead of a generic action. Refused when the snapshot contradicts it."
       ],
+      define_interface?: [
+        type: :boolean,
+        doc:
+          "Adds a resource-level code interface for the generated action, named after it, with the arguments as positional `args`. Defaults to the section's `define_interface?`."
+      ],
       get?: [
         type: :boolean,
         default: false,
@@ -78,6 +83,12 @@ defmodule AshTypedSql do
     entities: [@query],
     imports: [AshTypedSql.Sigil],
     schema: [
+      define_interface?: [
+        type: :boolean,
+        default: false,
+        doc:
+          "Adds a resource-level code interface for every generated action. A `query` or `typed_view` can override it."
+      ],
       sql_dir: [
         type: :string,
         default: "priv/typed_sql",

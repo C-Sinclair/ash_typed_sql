@@ -21,6 +21,7 @@ Start from [`ADR-000-TEMPLATE.md`](ADR-000-TEMPLATE.md). Design docs live in [`.
 | [010](ADR-010-parameterized-views-are-functions-read-through-a-cte.md) | Read a parameterized view through a CTE named after its table | accepted |
 | [011](ADR-011-query-arguments-are-ash-arguments-mapped-by-position.md) | Query arguments are Ash arguments mapped by position | accepted |
 | [012](ADR-012-typed-sql-actions-bypass-multitenancy.md) | Generated read, create, update and destroy actions bypass multitenancy | accepted |
+| [013](ADR-013-define-interface-on-the-resource.md) | `define_interface?` adds resource-level code interfaces, not domain ones | accepted |
 
 ## Documentation
 

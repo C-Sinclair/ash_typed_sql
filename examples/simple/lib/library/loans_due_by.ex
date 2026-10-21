@@ -8,6 +8,7 @@ defmodule Library.LoansDueBy do
   typed_view "views/loans_due_by.sql" do
     primary_key [:loan_id]
     argument :as_of
+    define_interface?(true)
   end
 
   postgres do

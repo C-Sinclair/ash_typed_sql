@@ -11,6 +11,8 @@ defmodule Library.Loan do
   end
 
   typed_sql do
+    define_interface?(true)
+
     query :top_borrowers, "loans/top_borrowers.sql" do
       argument :limit, default: 10, constraints: [min: 1]
       not_null [:loan_count]

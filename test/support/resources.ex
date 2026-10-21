@@ -53,7 +53,7 @@ defmodule AshTypedSql.Test.Customer do
 
     query :names, "customers/names.sql"
 
-    query :ping, sql: ~SQL"select 1 as one"
+    query :ping, sql: ~SQL"select 1 as one", define_interface?: true
 
     query :greet do
       sql ~SQL"""
@@ -174,6 +174,7 @@ defmodule AshTypedSql.Test.TenantOrder do
   typed_sql do
     sql_dir "test/support/typed_sql"
     snapshot_dir "test/support/typed_sql/snapshots"
+    define_interface?(true)
 
     query :order_totals, "orders/order_totals.sql"
 

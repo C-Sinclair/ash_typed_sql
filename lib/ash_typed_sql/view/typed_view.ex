@@ -7,6 +7,7 @@ defmodule AshTypedSql.View.TypedView do
     not_null: [],
     arguments: [],
     materialized?: false,
+    define_interface?: nil,
     type_overrides: [],
     sql_dir: "priv/typed_sql",
     snapshot_dir: "priv/typed_sql/snapshots",
@@ -20,6 +21,7 @@ defmodule AshTypedSql.View.TypedView do
           not_null: [atom()],
           arguments: [Ash.Resource.Actions.Argument.t()],
           materialized?: boolean(),
+          define_interface?: boolean() | nil,
           type_overrides: [{atom(), Ash.Type.t()}],
           sql_dir: String.t(),
           snapshot_dir: String.t()

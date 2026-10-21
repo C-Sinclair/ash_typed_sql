@@ -23,6 +23,11 @@ defmodule AshTypedSql.View do
         default: [],
         doc: "Result columns that are never null, for computed columns Postgres cannot prove."
       ],
+      define_interface?: [
+        type: :boolean,
+        doc:
+          "Adds resource-level code interfaces `read` and, for a materialized view, `refresh`. Defaults to the `typed_sql` section's `define_interface?`."
+      ],
       materialized?: [
         type: :boolean,
         default: false,

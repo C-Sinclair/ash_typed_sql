@@ -8,6 +8,7 @@ spark_locals_without_parens = [
   before_action?: 1,
   constraints: 1,
   default: 1,
+  define_interface?: 1,
   description: 1,
   function: 1,
   function: 2,
