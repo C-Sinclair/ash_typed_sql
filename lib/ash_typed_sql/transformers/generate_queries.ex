@@ -15,18 +15,21 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
     dsl
     |> Info.typed_sql()
     |> Enum.reduce_while({:ok, dsl, MapSet.new()}, fn query, {:ok, dsl, enums} ->
-      path = Info.snapshot_path(dsl, query.path)
+      path = Info.query_snapshot_path(dsl, query)
       dsl = Transformer.eval(dsl, [path: path], quote(do: @external_resource(unquote(path))))
 
-      case File.read(path) do
-        {:ok, json} ->
+      case {check_source(resource, query), File.read(path)} do
+        {{:error, error}, _} ->
+          {:halt, {:error, error}}
+
+        {:ok, {:ok, json}} ->
           case generate_or_skip(dsl, resource, query, path, json, enums) do
             :stale -> {:cont, {:ok, dsl, enums}}
             {:ok, dsl, enums} -> {:cont, {:ok, dsl, enums}}
             {:error, error} -> {:halt, {:error, error}}
           end
 
-        {:error, :enoent} ->
+        {:ok, {:error, :enoent}} ->
           IO.warn(
             "#{inspect(resource)} query #{inspect(query.name)} has no snapshot at #{path}. Run `mix ash.codegen`."
           )
@@ -39,6 +42,19 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
       error -> error
     end
   end
+
+  defp check_source(resource, %{path: path, sql: sql} = query)
+       when is_nil(path) == is_nil(sql) do
+    {:error,
+     DslError.exception(
+       module: resource,
+       path: [:typed_sql, :query, query.name],
+       message:
+         "query #{inspect(query.name)} takes either a `.sql` path or `sql`, not both or neither"
+     )}
+  end
+
+  defp check_source(_resource, _query), do: :ok
 
   # A snapshot that no longer decodes must not break compilation, because `mix ash.codegen` compiles before it can rewrite the snapshot.
   defp generate_or_skip(dsl, resource, query, path, json, enums) do
@@ -53,13 +69,10 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
   end
 
   defp generate(dsl, resource, %{as: as} = query, snapshot, enums) when not is_nil(as) do
-    sql_path = Info.sql_path(dsl, query.path)
-
-    dsl =
-      Transformer.eval(dsl, [path: sql_path], quote(do: @external_resource(unquote(sql_path))))
+    dsl = external_sql(dsl, query)
 
     # The opt-in is only checked against a snapshot of the current SQL, so a stale snapshot never blocks the compile that `mix ash.codegen` needs.
-    if File.read(sql_path) == {:ok, snapshot["sql"]} do
+    if Info.query_sql(dsl, query) == {:ok, snapshot["sql"]} do
       case Crud.check(dsl, query, snapshot) do
         {:ok, fit} ->
           generate(dsl, resource, query, snapshot, enums, fit)
@@ -69,12 +82,12 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
            DslError.exception(
              module: resource,
              path: [:typed_sql, :query, query.name, :as],
-             message: "#{query.path} cannot be `as #{inspect(as)}`: #{message}"
+             message: "#{Info.query_source(query)} cannot be `as #{inspect(as)}`: #{message}"
            )}
       end
     else
       IO.warn(
-        "#{inspect(resource)} query #{inspect(query.name)} skipped, because #{sql_path} has changed since its snapshot. Run `mix ash.codegen`."
+        "#{inspect(resource)} query #{inspect(query.name)} skipped, because #{Info.query_source(query)} has changed since its snapshot. Run `mix ash.codegen`."
       )
 
       :stale
@@ -83,6 +96,13 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
 
   defp generate(dsl, resource, query, snapshot, enums),
     do: generate(dsl, resource, query, snapshot, enums, nil)
+
+  defp external_sql(dsl, %{path: nil}), do: dsl
+
+  defp external_sql(dsl, query) do
+    sql_path = Info.sql_path(dsl, query.path)
+    Transformer.eval(dsl, [path: sql_path], quote(do: @external_resource(unquote(sql_path))))
+  end
 
   defp generate(dsl, resource, query, snapshot, enums, fit) do
     record_params = if fit, do: fit.record_params, else: []
@@ -155,7 +175,7 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
            module: resource,
            path: [:typed_sql, :query, query.name, :prepare],
            message:
-             "#{query.path} is `as #{inspect(as)}`, and an Ash #{as} action takes no preparations. Use `validate`, or drop `as`"
+             "#{Info.query_source(query)} is `as #{inspect(as)}`, and an Ash #{as} action takes no preparations. Use `validate`, or drop `as`"
          )}
     end
   end
@@ -169,7 +189,7 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
        module: resource,
        path: [:typed_sql, :query, query.name, :get?],
        message:
-         "#{query.path} is `as #{inspect(as)}`, and `get?` applies only to generic and read actions"
+         "#{Info.query_source(query)} is `as #{inspect(as)}`, and `get?` applies only to generic and read actions"
      )}
   end
 
@@ -200,7 +220,7 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
            DslError.exception(
              module: resource,
              path: [:typed_sql, :query, query.name, :argument],
-             message: "#{query.path}: #{message}"
+             message: "#{Info.query_source(query)}: #{message}"
            )}
         end
     end
@@ -223,7 +243,7 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
   end
 
   defp stale?(dsl, query, snapshot),
-    do: File.read(Info.sql_path(dsl, query.path)) != {:ok, snapshot["sql"]}
+    do: Info.query_sql(dsl, query) != {:ok, snapshot["sql"]}
 
   defp action_options(resource, %{as: nil} = query, snapshot, ash_type) do
     row = Module.concat(resource, Macro.camelize("#{query.name}_row"))

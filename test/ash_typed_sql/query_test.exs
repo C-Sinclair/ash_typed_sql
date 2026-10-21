@@ -164,6 +164,24 @@ defmodule AshTypedSql.QueryTest do
                run.(:gold)
     end
 
+    test "runs inline SQL given with sql: and with the ~SQL sigil" do
+      assert [%Customer.PingRow{one: 1}] =
+               Customer |> Ash.ActionInput.for_action(:ping, %{}) |> Ash.run_action!()
+
+      assert [%Customer.GreetRow{greeting: "hello Ada"}] =
+               Customer
+               |> Ash.ActionInput.for_action(:greet, %{name: "Ada"})
+               |> Ash.run_action!()
+    end
+
+    test "inline SQL snapshots are keyed by resource and query name" do
+      assert AshTypedSql.Info.query_snapshot_path(
+               Customer,
+               Enum.find(AshTypedSql.Info.typed_sql(Customer), &(&1.name == :ping))
+             ) ==
+               "test/support/typed_sql/snapshots/ash_typed_sql/test/customer/ping.json"
+    end
+
     test "runs write queries and returns the written rows", %{customer_id: customer_id} do
       assert [%{id: order_id, total: total}] =
                Order

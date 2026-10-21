@@ -9,11 +9,21 @@ defmodule AshTypedSql do
 
   @query %Spark.Dsl.Entity{
     name: :query,
-    describe: "Declares a `.sql` file as a generic action.",
+    describe: "Declares a `.sql` file, or inline SQL given with `sql`, as a generic action.",
+    examples: [
+      ~s|query :top_customers, "accounts/top_customers.sql"|,
+      ~s|query :ping, sql: "select 1 as one"|,
+      ~s|query :ping, sql: ~SQL"select 1 as one"|
+    ],
     target: AshTypedSql.Query,
-    args: [:name, :path],
+    args: [:name, {:optional, :path}],
     identifier: :name,
-    imports: [Ash.Resource.Preparation.Builtins, Ash.Resource.Validation.Builtins, Ash.Expr],
+    imports: [
+      Ash.Resource.Preparation.Builtins,
+      Ash.Resource.Validation.Builtins,
+      Ash.Expr,
+      AshTypedSql.Sigil
+    ],
     entities: [
       arguments: [AshTypedSql.Argument.entity()],
       preparations: [
@@ -23,7 +33,15 @@ defmodule AshTypedSql do
     ],
     schema: [
       name: [type: :atom, required: true, doc: "The name of the generated action."],
-      path: [type: :string, required: true, doc: "The `.sql` file, relative to `sql_dir`."],
+      path: [
+        type: :string,
+        doc: "The `.sql` file, relative to `sql_dir`. Give either `path` or `sql`."
+      ],
+      sql: [
+        type: :string,
+        doc:
+          "The statement itself, in place of a `.sql` file. Its snapshot is written to `<snapshot_dir>/<resource>/<name>.json`."
+      ],
       type_overrides: [
         type: :keyword_list,
         default: [],
@@ -58,6 +76,7 @@ defmodule AshTypedSql do
     name: :typed_sql,
     describe: "Generic actions generated from `.sql` files.",
     entities: [@query],
+    imports: [AshTypedSql.Sigil],
     schema: [
       sql_dir: [
         type: :string,

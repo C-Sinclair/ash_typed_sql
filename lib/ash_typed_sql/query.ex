@@ -4,6 +4,7 @@ defmodule AshTypedSql.Query do
   defstruct [
     :name,
     :path,
+    :sql,
     :kind,
     :as,
     :description,
@@ -18,7 +19,8 @@ defmodule AshTypedSql.Query do
 
   @type t :: %__MODULE__{
           name: atom(),
-          path: String.t(),
+          path: String.t() | nil,
+          sql: String.t() | nil,
           kind: AshTypedSql.kind() | nil,
           as: :read | :create | :update | :destroy | nil,
           description: String.t() | nil,

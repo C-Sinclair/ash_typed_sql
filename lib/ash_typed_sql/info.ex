@@ -17,6 +17,30 @@ defmodule AshTypedSql.Info do
     Path.join(dir, Path.rootname(sql_path) <> ".json")
   end
 
+  @doc "Returns the snapshot path of a query: next to its `.sql` file's, or `<snapshot_dir>/<resource>/<name>.json` for inline SQL."
+  @spec query_snapshot_path(Ash.Resource.t() | map(), AshTypedSql.Query.t()) :: String.t()
+  def query_snapshot_path(resource, %{path: nil} = query) do
+    module =
+      if is_atom(resource),
+        do: resource,
+        else: Spark.Dsl.Transformer.get_persisted(resource, :module)
+
+    snapshot_path(resource, Path.join(Macro.underscore(module), "#{query.name}.sql"))
+  end
+
+  def query_snapshot_path(resource, query), do: snapshot_path(resource, query.path)
+
+  @doc "Reads a query's SQL from its `.sql` file, or returns its inline `sql`."
+  @spec query_sql(Ash.Resource.t() | map(), AshTypedSql.Query.t()) ::
+          {:ok, String.t()} | {:error, File.posix()}
+  def query_sql(_resource, %{path: nil, sql: sql}), do: {:ok, sql}
+  def query_sql(resource, query), do: File.read(sql_path(resource, query.path))
+
+  @doc "Names where a query's SQL comes from, for messages."
+  @spec query_source(AshTypedSql.Query.t()) :: String.t()
+  def query_source(%{path: nil, name: name}), do: "inline SQL of #{inspect(name)}"
+  def query_source(query), do: query.path
+
   @doc "Returns the path of a query file, relative to the project root."
   @spec sql_path(Ash.Resource.t() | map(), String.t()) :: String.t()
   def sql_path(resource, path) do

@@ -59,6 +59,22 @@ Each `argument` binds the next positional parameter, so the first binds `$1`. `a
 
 `TopCustomersRow` is an `Ash.TypedStruct` with `id: :uuid`, `name: :string` and `lifetime_value: :decimal`. Each field's `allow_nil?` comes from the column's `NOT NULL` constraint where Postgres can trace the column back to a table. Computed columns such as `sum(...)` are nullable unless you say otherwise.
 
+A short statement can live inline instead of in a `.sql` file. `sql` takes a string, and the `~SQL` sigil is imported inside `typed_sql` for the same purpose. Its snapshot goes to `<snapshot_dir>/<resource>/<name>.json`, for example `priv/typed_sql/snapshots/my_app/accounts/customer/ping.json`. A `query` takes a path or `sql`, never both.
+
+```elixir
+typed_sql do
+  query :ping, sql: ~SQL"select 1 as one"
+
+  query :greet do
+    sql ~SQL"""
+    select 'hello ' || $1::text as greeting
+    """
+
+    argument :name
+  end
+end
+```
+
 `get? true` makes the action return one `TopCustomersRow` or `nil` instead of a list. A query that returns more than one row fails with `Ash.Error.Invalid.MultipleResults`. On an `as :read` query, `get? true` sets the read action's `get?`.
 
 ## How it works

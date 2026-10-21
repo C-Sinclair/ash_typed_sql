@@ -96,7 +96,7 @@ defmodule AshTypedSql.Codegen.Query do
     try do
       for resource <- resources, query <- Info.typed_sql(resource) do
         snapshot = snapshot(conn, describe_conn, resource, query)
-        {Info.snapshot_path(resource, query.path), Jason.encode!(snapshot, pretty: true) <> "\n"}
+        {Info.query_snapshot_path(resource, query), Jason.encode!(snapshot, pretty: true) <> "\n"}
       end
     after
       Describe.disconnect(describe_conn)
@@ -106,8 +106,8 @@ defmodule AshTypedSql.Codegen.Query do
 
   @doc "Describes one query and returns its snapshot as a JSON-ready map."
   def snapshot(conn, describe_conn, resource, query) do
-    sql = File.read!(Info.sql_path(resource, query.path))
-    label = "#{inspect(resource)} query #{inspect(query.name)} (#{query.path})"
+    {:ok, sql} = Info.query_sql(resource, query)
+    label = "#{inspect(resource)} query #{inspect(query.name)} (#{Info.query_source(query)})"
 
     described =
       case Describe.describe(describe_conn, sql) do

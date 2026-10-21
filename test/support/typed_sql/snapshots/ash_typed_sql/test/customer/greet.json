@@ -1,0 +1,19 @@
+{
+  "columns": [
+    {
+      "name": "greeting",
+      "source": null,
+      "type": {
+        "type": "string"
+      }
+    }
+  ],
+  "kind": "read",
+  "params": [
+    {
+      "type": "string"
+    }
+  ],
+  "sql": "select 'hello ' || $1::text as greeting\n",
+  "writes": []
+}

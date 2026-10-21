@@ -1,0 +1,15 @@
+{
+  "columns": [
+    {
+      "name": "one",
+      "source": null,
+      "type": {
+        "type": "integer"
+      }
+    }
+  ],
+  "kind": "read",
+  "params": [],
+  "sql": "select 1 as one",
+  "writes": []
+}

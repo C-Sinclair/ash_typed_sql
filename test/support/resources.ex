@@ -52,6 +52,16 @@ defmodule AshTypedSql.Test.Customer do
     end
 
     query :names, "customers/names.sql"
+
+    query :ping, sql: ~SQL"select 1 as one"
+
+    query :greet do
+      sql ~SQL"""
+      select 'hello ' || $1::text as greeting
+      """
+
+      argument :name
+    end
   end
 
   attributes do
