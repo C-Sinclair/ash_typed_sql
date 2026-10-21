@@ -5,7 +5,7 @@ defmodule AshTypedSql.Codegen.Function do
   Reads every declared function from `pg_proc` in the resource's repo database and writes one JSON snapshot per function. `--check` and `--dry-run` behave as they do for `AshTypedSql.Codegen.Query`.
   """
 
-  alias AshTypedSql.Codegen.Query
+  alias AshTypedSql.Codegen.{Migration, Query}
   alias AshTypedSql.Functions.Info
   alias AshTypedSql.TypeMap
 
@@ -41,11 +41,16 @@ defmodule AshTypedSql.Codegen.Function do
 
   A function declared with `sql` is created inside a transaction that is rolled back, and gets a migration whenever its file differs from the snapshot.
   """
-  def files(repo, resources) do
+  def files(repo, resources, now \\ DateTime.utc_now()) do
     {:ok, conn} = Postgrex.start_link(Query.connection_config(repo.config()))
 
     try do
-      for resource <- resources, function <- Info.typed_sql_functions(resource) do
+      for(
+        resource <- resources,
+        function <- Info.typed_sql_functions(resource),
+        do: {resource, function}
+      )
+      |> Enum.flat_map_reduce(nil, fn {resource, function}, last_version ->
         path = Info.snapshot_path(resource, function)
 
         if function.sql do
@@ -53,21 +58,24 @@ defmodule AshTypedSql.Codegen.Function do
           {snapshot, created} = define(conn, resource, function, sql)
           snapshot = Map.put(snapshot, "sql", sql)
 
-          previous =
+          previous_sql =
             case File.read(path) do
               {:ok, json} -> json |> Jason.decode!() |> Map.get("sql")
               {:error, :enoent} -> nil
             end
 
-          migration =
-            if previous != sql, do: [migration(repo, function, sql, previous, created)], else: []
-
-          [{path, encode(snapshot)} | migration]
+          if previous_sql != sql do
+            version = Migration.version(repo, now, last_version)
+            migration = migration(repo, function, sql, previous_sql, created, version)
+            {[{path, encode(snapshot)}, migration], version}
+          else
+            {[{path, encode(snapshot)}], last_version}
+          end
         else
-          [{path, encode(snapshot(conn, resource, function))}]
+          {[{path, encode(snapshot(conn, resource, function))}], last_version}
         end
-      end
-      |> List.flatten()
+      end)
+      |> elem(0)
     after
       GenServer.stop(conn)
     end
@@ -113,8 +121,7 @@ defmodule AshTypedSql.Codegen.Function do
     List.flatten(rows)
   end
 
-  defp migration(repo, function, sql, previous, created) do
-    timestamp = timestamp()
+  defp migration(repo, function, sql, previous, created, timestamp) do
     name = "typed_sql_function_#{function.name}"
     module = Module.concat([repo, Migrations, Macro.camelize(name) <> timestamp])
 
@@ -143,7 +150,7 @@ defmodule AshTypedSql.Codegen.Function do
     end
     """
 
-    {Path.join(migrations_path(repo), "#{timestamp}_#{name}.exs"), contents}
+    {Path.join(Migration.path(repo), "#{timestamp}_#{name}.exs"), contents}
   end
 
   defp heredoc(sql) do
@@ -151,22 +158,6 @@ defmodule AshTypedSql.Codegen.Function do
       sql |> String.trim_trailing() |> String.split("\n") |> Enum.map_join("\n", &("    " <> &1))
 
     ~s|    execute(~S"""\n#{body}\n    """)|
-  end
-
-  # The same lookup as `mix ecto.gen.migration`, so the migration lands where `mix ecto.migrate` reads.
-  defp migrations_path(repo) do
-    config = repo.config()
-
-    config[:migrations_path] ||
-      Path.join(
-        config[:priv] || "priv/#{repo |> Module.split() |> List.last() |> Macro.underscore()}",
-        "migrations"
-      )
-  end
-
-  defp timestamp do
-    {{y, m, d}, {hh, mm, ss}} = :calendar.universal_time()
-    Enum.map_join([y, m, d, hh, mm, ss], &String.pad_leading(to_string(&1), 2, "0"))
   end
 
   @doc "Reads one function from `pg_proc` and returns its snapshot as a JSON-ready map."

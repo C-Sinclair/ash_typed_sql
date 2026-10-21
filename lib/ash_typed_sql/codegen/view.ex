@@ -5,7 +5,7 @@ defmodule AshTypedSql.Codegen.View do
   Describes each view's `SELECT` against the resource's repo database and writes its snapshot. When the view's SQL, `materialized?` or `primary_key` differs from the last snapshot, it also writes an Ecto migration that moves the database from the old view to the new one and back.
   """
 
-  alias AshTypedSql.Codegen.{Describe, Query}
+  alias AshTypedSql.Codegen.{Describe, Migration, Query}
   alias AshTypedSql.View.Info
 
   def run(argv) do
@@ -27,8 +27,7 @@ defmodule AshTypedSql.Codegen.View do
 
     try do
       resources
-      |> Enum.with_index()
-      |> Enum.flat_map(fn {resource, index} ->
+      |> Enum.flat_map_reduce(nil, fn resource, previous ->
         view = Info.typed_view(resource)
         path = Info.snapshot_path(view)
         label = "#{inspect(resource)} view (#{view.path})"
@@ -42,12 +41,13 @@ defmodule AshTypedSql.Codegen.View do
              AshPostgres.DataLayer.Info.table(resource)}
 
           {up, down} = migration(conn, name, old, new, label)
-          version = now |> DateTime.add(index, :second) |> Calendar.strftime("%Y%m%d%H%M%S")
-          [snapshot_file, migration_file(repo, elem(name, 1), version, up, down)]
+          version = Migration.version(repo, now, previous)
+          {[snapshot_file, migration_file(repo, elem(name, 1), version, up, down)], version}
         else
-          [snapshot_file]
+          {[snapshot_file], previous}
         end
       end)
+      |> elem(0)
     after
       Describe.disconnect(describe_conn)
       GenServer.stop(conn)
@@ -288,19 +288,9 @@ defmodule AshTypedSql.Codegen.View do
       |> Code.format_string!()
       |> IO.iodata_to_binary()
 
-    {Path.join(migrations_path(repo), "#{version}_#{table}_view.exs"), contents <> "\n"}
+    {Path.join(Migration.path(repo), "#{version}_#{table}_view.exs"), contents <> "\n"}
   end
 
   defp executes(statements),
     do: Enum.map_join(statements, "\n\n", &~s[execute(~S"""\n#{&1}\n""")])
-
-  defp migrations_path(repo) do
-    config = repo.config()
-
-    config[:migrations_path] ||
-      Path.join(
-        config[:priv] || "priv/#{repo |> Module.split() |> List.last() |> Macro.underscore()}",
-        "migrations"
-      )
-  end
 end

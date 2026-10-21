@@ -227,7 +227,7 @@ Customer
 
 Each module is named after its function, under `module_prefix`, which defaults to the resource module. The example above generates `MyApp.Expressions.Similarity` and `MyApp.Expressions.BusinessDaysBetween`.
 
-With `sql:`, codegen runs the file inside a transaction that it rolls back, reads the function from `pg_proc`, and writes an Ecto migration to the repo's migrations directory. Run it with `mix ecto.migrate`. A new migration is written whenever the file changes, and its `down` restores the previous version of the file. The file must hold one `CREATE OR REPLACE FUNCTION` statement.
+With `sql:`, codegen runs the file inside a transaction that it rolls back, reads the function from `pg_proc`, and writes an Ecto migration to the repo's migrations directory. Run it with `mix ecto.migrate`. A new migration is written whenever the file changes, and its `down` restores the previous version of the file. The file must hold one `CREATE OR REPLACE FUNCTION` statement. Every migration codegen writes takes a version later than each migration already in the migrations directory, so function and view migrations from one run never share a version.
 
 Ash reads custom expressions from compile-time config, so the generated modules have to be listed there. `mix ash_typed_sql.register_functions` (needs Igniter) adds every generated module to `config/config.exs` and keeps the ones already listed:
 

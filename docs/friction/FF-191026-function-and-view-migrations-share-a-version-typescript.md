@@ -29,3 +29,5 @@ Renamed the function migration to `20261019123702_typed_sql_function_days_overdu
 ## What would fix it
 
 One version allocator shared by every AshTypedSql codegen step in a run, or each step reading the migrations directory and choosing a version after the highest existing one.
+
+**Resolved:** 2026-10-21. `AshTypedSql.Codegen.Migration.version/3` picks a version later than the current second, the previous migration of the same run, and every migration already in the migrations directory. `AshTypedSql.Codegen.Function` and `AshTypedSql.Codegen.View` both use it. `AshTypedSql.Codegen.MigrationTest` generates a function and a view migration in one run.

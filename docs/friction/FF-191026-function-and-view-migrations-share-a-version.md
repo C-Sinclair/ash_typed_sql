@@ -27,3 +27,5 @@ Renamed the function migration to `20261019123641_typed_sql_function_days_overdu
 ## What would fix it
 
 The codegen steps should pick a version later than every migration already in the migrations directory, rather than the wall-clock second.
+
+**Resolved:** 2026-10-21. `AshTypedSql.Codegen.Migration.version/3` picks a version later than the current second, the previous migration of the same run, and every migration already in the migrations directory. `AshTypedSql.Codegen.Function` and `AshTypedSql.Codegen.View` both use it. `AshTypedSql.Codegen.MigrationTest` generates a function and a view migration in one run.

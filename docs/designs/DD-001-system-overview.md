@@ -42,7 +42,7 @@ AshTypedSql turns SQL that Postgres can describe into typed Ash constructs. One 
 
 ## What gets generated
 
-Codegen time: one JSON snapshot per query, view and function under `priv/typed_sql/snapshots/`, plus migrations for views and functions defined in this repo. Compile time: actions, `Ash.TypedStruct` row types, attributes and `Ash.CustomExpression` modules, read from snapshots.
+Codegen time: one JSON snapshot per query, view and function under `priv/typed_sql/snapshots/`, plus migrations for views and functions defined in this repo. `AshTypedSql.Codegen.Migration.version/3` gives each migration a version later than every migration already in the repo's migrations directory, so the function and view steps of one run never share a version. Compile time: actions, `Ash.TypedStruct` row types, attributes and `Ash.CustomExpression` modules, read from snapshots.
 
 `AshTypedSql.TypeMap` maps a type OID to an Ash type, shared by all three extensions. Enum types become generated `Ash.Type.Enum` modules from `pg_enum`.
 
