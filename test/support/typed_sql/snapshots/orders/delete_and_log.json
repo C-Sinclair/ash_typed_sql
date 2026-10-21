@@ -35,10 +35,12 @@
   "writes": [
     {
       "operation": "insert",
+      "schema": "public",
       "table": "audit_log"
     },
     {
       "operation": "delete",
+      "schema": "public",
       "table": "orders"
     }
   ]

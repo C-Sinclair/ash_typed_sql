@@ -1,0 +1,73 @@
+{
+  "columns": [
+    {
+      "default": true,
+      "name": "id",
+      "not_null": true,
+      "type": {
+        "type": "integer"
+      }
+    },
+    {
+      "default": false,
+      "name": "customer_id",
+      "not_null": true,
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "default": false,
+      "name": "total",
+      "not_null": true,
+      "type": {
+        "type": "decimal"
+      }
+    },
+    {
+      "default": false,
+      "name": "discount",
+      "not_null": false,
+      "type": {
+        "type": "float"
+      }
+    },
+    {
+      "default": true,
+      "name": "inserted_at",
+      "not_null": true,
+      "type": {
+        "type": "utc_datetime_usec"
+      }
+    },
+    {
+      "default": false,
+      "name": "shipped_at",
+      "not_null": false,
+      "type": {
+        "type": "naive_datetime"
+      }
+    }
+  ],
+  "foreign_keys": [
+    {
+      "columns": [
+        "customer_id"
+      ],
+      "constraint": "orders_customer_id_fkey",
+      "references": {
+        "columns": [
+          "id"
+        ],
+        "schema": "public",
+        "table": "customers"
+      }
+    }
+  ],
+  "identities": [],
+  "primary_key": [
+    "id"
+  ],
+  "schema": "public",
+  "table": "orders"
+}

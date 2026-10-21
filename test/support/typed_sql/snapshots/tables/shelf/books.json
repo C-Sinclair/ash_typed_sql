@@ -1,0 +1,42 @@
+{
+  "columns": [
+    {
+      "default": true,
+      "name": "id",
+      "not_null": true,
+      "type": {
+        "type": "integer"
+      }
+    },
+    {
+      "default": false,
+      "name": "isbn",
+      "not_null": true,
+      "type": {
+        "type": "string"
+      }
+    },
+    {
+      "default": false,
+      "name": "title",
+      "not_null": true,
+      "type": {
+        "type": "string"
+      }
+    }
+  ],
+  "foreign_keys": [],
+  "identities": [
+    {
+      "columns": [
+        "isbn"
+      ],
+      "index": "books_isbn_key"
+    }
+  ],
+  "primary_key": [
+    "id"
+  ],
+  "schema": "shelf",
+  "table": "books"
+}

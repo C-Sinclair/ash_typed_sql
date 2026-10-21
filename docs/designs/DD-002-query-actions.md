@@ -40,7 +40,7 @@ A `query` names a `.sql` file relative to `sql_dir`, or gives the statement inli
 
 ## Postgres constraints
 
-- Classification uses `ModifyTable` nodes from `EXPLAIN (GENERIC_PLAN, FORMAT JSON)`, Postgres 16+. Writes inside PL/pgSQL functions are invisible.
+- Classification uses `ModifyTable` nodes from `EXPLAIN (GENERIC_PLAN, VERBOSE, FORMAT JSON)`, Postgres 16+. Writes inside PL/pgSQL functions are invisible.
 - `CommandComplete` tags are not used, because they need execution.
 
 ## Threat model

@@ -8,7 +8,7 @@
 
 ## The decision
 
-The codegen step runs `EXPLAIN (GENERIC_PLAN, FORMAT JSON)` on each query and records every `ModifyTable` node's `Operation` and `Relation Name` in the snapshot as `kind` and `writes`. A plan with no `ModifyTable` node is `:read`. More than one written table is `:mixed`. The library requires Postgres 16 or later for codegen.
+The codegen step runs `EXPLAIN (GENERIC_PLAN, VERBOSE, FORMAT JSON)` on each query and records every `ModifyTable` node's `Operation`, `Schema` and `Relation Name` in the snapshot as `kind` and `writes`. A plan with no `ModifyTable` node is `:read`. More than one written table is `:mixed`. The library requires Postgres 16 or later for codegen.
 
 ## Context
 

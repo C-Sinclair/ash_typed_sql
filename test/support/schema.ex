@@ -4,6 +4,8 @@ defmodule AshTypedSql.Test.Schema do
   @statements [
     "create extension if not exists citext",
     "drop table if exists schema_migrations, audit_log, orders, customers cascade",
+    "create schema if not exists shelf",
+    "drop table if exists shelf.books, shelf.audit_log cascade",
     "drop function if exists customer_stats_since",
     "drop type if exists customer_tier",
     "create type customer_tier as enum ('bronze', 'silver', 'gold')",
@@ -30,6 +32,9 @@ defmodule AshTypedSql.Test.Schema do
     )
     """,
     "create table audit_log (id bigserial primary key, message text not null)",
+    "create unique index customers_unique_email_index on customers (email)",
+    "create table shelf.books (id bigserial primary key, isbn text not null unique, title text not null)",
+    "create table shelf.audit_log (id bigserial primary key, message text not null)",
     "create or replace function name_score(a text, b text) returns float8 immutable language sql as $$ select length(a)::float8 / greatest(length(b), 1) $$",
     "create or replace function is_vip(name text) returns boolean immutable language sql as $$ select name like 'VIP %' $$",
     "create sequence if not exists bump_seq",

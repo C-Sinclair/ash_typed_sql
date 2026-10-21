@@ -143,7 +143,11 @@ defmodule AshTypedSql.Codegen.Query do
       "writes" => writes
     }
 
-    with %{as: as} when not is_nil(as) <- query,
+    # A resource whose `typed_table` has no snapshot yet has no attributes to check an opt-in against. The next compile checks it.
+    pending? = Spark.Dsl.Extension.get_persisted(resource, :ash_typed_sql_table_pending, false)
+
+    with false <- pending?,
+         %{as: as} when not is_nil(as) <- query,
          {:error, message} <- AshTypedSql.Crud.check(resource, query, snapshot) do
       Mix.raise("#{label}: cannot be `as #{inspect(as)}`: #{message}")
     end
@@ -153,7 +157,8 @@ defmodule AshTypedSql.Codegen.Query do
         do: length(Ash.Resource.Info.primary_key(resource)),
         else: 0
 
-    with {:error, message} <-
+    with false <- pending?,
+         {:error, message} <-
            AshTypedSql.Argument.check_count(
              Enum.map(query.arguments, & &1.name),
              length(described.param_oids),
@@ -218,7 +223,7 @@ defmodule AshTypedSql.Codegen.Query do
     %{rows: [[[plan]]]} =
       Postgrex.query!(
         conn,
-        "explain (generic_plan, format json) " <> sql,
+        "explain (generic_plan, verbose, format json) " <> sql,
         List.duplicate(nil, param_count)
       )
 
@@ -226,7 +231,11 @@ defmodule AshTypedSql.Codegen.Query do
       plan["Plan"]
       |> modify_tables()
       |> Enum.map(
-        &%{"operation" => String.downcase(&1["Operation"]), "table" => &1["Relation Name"]}
+        &%{
+          "operation" => String.downcase(&1["Operation"]),
+          "schema" => &1["Schema"],
+          "table" => &1["Relation Name"]
+        }
       )
       |> Enum.uniq()
 

@@ -246,7 +246,7 @@ defmodule AshTypedSql.CrudTest do
         "customers",
         "uuid_primary_key(:id)",
         ~s{query :q, "orders/create_order.sql", as: :create},
-        ~r/must only insert into customers, but it writes insert orders/
+        ~r/must only insert into public.customers, but it writes insert public.orders/
       )
     end
 
@@ -354,6 +354,35 @@ defmodule AshTypedSql.CrudTest do
 
         assert_raise Mix.Error,
                      ~r/cannot be `as :read`: Postgres classifies the statement as :create/,
+                     fn ->
+                       AshTypedSql.Codegen.Query.snapshots(AshTypedSql.Test.Schema.config(), [
+                         module
+                       ])
+                     end
+      end)
+    end
+  end
+
+  describe "the writes check" do
+    @tag :tmp_dir
+    test "compares the schema as well as the table", %{tmp_dir: tmp_dir} do
+      capture_io(:stderr, fn ->
+        module =
+          define(
+            "audit_log",
+            "integer_primary_key(:id)\nattribute(:message, :string, allow_nil?: false, public?: true)",
+            """
+            query :q do
+              as :create
+              sql "insert into shelf.audit_log (message) values ($1) returning *"
+              argument :message
+            end
+            """,
+            snapshot_dir: tmp_dir
+          )
+
+        assert_raise Mix.Error,
+                     ~r/must only insert into public.audit_log, but it writes insert shelf.audit_log/,
                      fn ->
                        AshTypedSql.Codegen.Query.snapshots(AshTypedSql.Test.Schema.config(), [
                          module

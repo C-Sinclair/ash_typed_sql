@@ -32,3 +32,5 @@ Declare `typed_view` over the table and set `postgres table` to the table name, 
 ## What would fix it
 
 A `typed_table` entity, or a `table? true` option on `typed_view`, that generates attributes from a table's columns and writes no migration. `check_coverage` should refuse a resource with no attributes.
+
+**Resolved:** 2026-10-21. `typed_table` generates the attributes from the table and writes no migration ([DD-005](../designs/DD-005-tables.md), [ADR-014](../decisions/ADR-014-typed-table-describes-and-never-migrates.md)). `check_coverage` still passes a resource with no attributes, but a `typed_table` resource whose snapshot is missing now skips its opt-ins instead.

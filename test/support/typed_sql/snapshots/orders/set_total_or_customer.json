@@ -89,6 +89,7 @@
   "writes": [
     {
       "operation": "update",
+      "schema": "public",
       "table": "orders"
     }
   ]

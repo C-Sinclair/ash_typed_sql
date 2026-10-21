@@ -86,6 +86,7 @@
   "writes": [
     {
       "operation": "insert",
+      "schema": "public",
       "table": "orders"
     }
   ]

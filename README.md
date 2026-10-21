@@ -101,7 +101,7 @@ Postgres can also report what a statement does to data. The describe step uses t
 
 | Source | What it reports |
 |---|---|
-| `EXPLAIN (GENERIC_PLAN, FORMAT JSON)` (Postgres 16+) | A `ModifyTable` node with `Operation: Insert/Update/Delete` and `Relation Name` for each write, including writes inside CTEs. No `ModifyTable` node means a read. No parameter values are needed and nothing executes. |
+| `EXPLAIN (GENERIC_PLAN, VERBOSE, FORMAT JSON)` (Postgres 16+) | A `ModifyTable` node with `Operation: Insert/Update/Delete`, `Schema` and `Relation Name` for each write, including writes inside CTEs. No `ModifyTable` node means a read. No parameter values are needed and nothing executes. |
 | `RowDescription` table OID per column | Whether every result column comes from a single table, such as with `RETURNING *`. |
 
 The `CommandComplete` tag (`INSERT 0 1`, `UPDATE 3`) only arrives after execution, so the step does not use it. A SQL parser such as `libpg_query` gives the same statement type as `EXPLAIN`, but `EXPLAIN` also resolves views and rewrite rules into the tables they write. Writes inside a PL/pgSQL function call are invisible to both, so a query that calls one is classified as `:read` unless you set `kind` by hand.
@@ -212,6 +212,40 @@ The read action's `modify_query` adds `WITH "customer_stats_since" AS (select * 
 Filters, sorts, pagination and relationship loads work. A relationship into a parameterized view sets `read_action :read`, and the load passes the arguments with `Ash.Query.for_read/3`. A relationship filter, sort or aggregate into a parameterized view fails, because a filter cannot pass read arguments. A parameterized view cannot set a `postgres` `schema`.
 
 A `WITH` statement inside a query file needs no special support. Describe types it like any other statement, and `EXPLAIN` lists the writes made inside its CTEs.
+
+## Tables
+
+A CRUD opt-in checks its columns against the resource's attributes. `typed_table` generates those attributes from a table that already exists, whether an `ash_postgres` migration or a hand-written one created it.
+
+```elixir
+defmodule Shop.Order do
+  use Ash.Resource,
+    domain: Shop,
+    data_layer: AshPostgres.DataLayer,
+    extensions: [AshTypedSql.Table, AshTypedSql]
+
+  typed_table "orders" do
+    relationships? true
+    references customers: Shop.Customer
+  end
+
+  typed_sql do
+    query :place_order, "orders/place_order.sql" do
+      argument :customer_id
+      argument :total
+      as :create
+    end
+  end
+
+  postgres do
+    repo Shop.Repo
+  end
+end
+```
+
+`mix ash.codegen` reads the table's columns, unique indexes and foreign keys from `pg_attribute`, `pg_index` and `pg_constraint`, and writes `priv/typed_sql/snapshots/tables/<schema>/<table>.json`. It never writes a migration for the table. Compilation generates one attribute per column, typed through `AshTypedSql.TypeMap`, with `allow_nil?` from `NOT NULL` and `generated?` for a column with a default. It also sets the primary key, an identity per plain unique index, and `postgres` `table`, `schema` and `migrate? false`. An attribute you declare yourself replaces the generated one. No actions are generated.
+
+`schema "shelf"` describes a table outside `public`. `relationships? true` adds a `belongs_to` for each single-column foreign key on a column ending in `_id`, named without the suffix, over the generated attribute. `references` names the resource behind each referenced table, and a foreign key into an unmapped table is a compile error ([ADR-015](docs/decisions/ADR-015-belongs-to-destinations-come-from-references.md)). See [DD-005](docs/designs/DD-005-tables.md).
 
 ## Functions
 

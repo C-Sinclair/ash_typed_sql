@@ -7,14 +7,20 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
   alias Spark.Dsl.Transformer
   alias Spark.Error.DslError
 
+  # The CRUD opt-ins check their columns against the attributes that `typed_table` generates.
+  def before?(AshTypedSql.Transformers.GenerateTable), do: false
   def before?(_), do: true
+
+  def after?(AshTypedSql.Transformers.GenerateTable), do: true
+  def after?(_), do: false
 
   def transform(dsl) do
     resource = Transformer.get_persisted(dsl, :module)
+    enums = Transformer.get_persisted(dsl, :ash_typed_sql_enums, MapSet.new())
 
     dsl
     |> Info.typed_sql()
-    |> Enum.reduce_while({:ok, dsl, MapSet.new()}, fn query, {:ok, dsl, enums} ->
+    |> Enum.reduce_while({:ok, dsl, enums}, fn query, {:ok, dsl, enums} ->
       path = Info.query_snapshot_path(dsl, query)
       dsl = Transformer.eval(dsl, [path: path], quote(do: @external_resource(unquote(path))))
 
@@ -71,26 +77,36 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
   defp generate(dsl, resource, %{as: as} = query, snapshot, enums) when not is_nil(as) do
     dsl = external_sql(dsl, query)
 
-    # The opt-in is only checked against a snapshot of the current SQL, so a stale snapshot never blocks the compile that `mix ash.codegen` needs.
-    if Info.query_sql(dsl, query) == {:ok, snapshot["sql"]} do
-      case Crud.check(dsl, query, snapshot) do
-        {:ok, fit} ->
-          generate(dsl, resource, query, snapshot, enums, fit)
+    # The opt-in is only checked against a snapshot of the current SQL, so a stale snapshot never blocks the compile that `mix ash.codegen` needs. Snapshots written before writes recorded their schema count as stale.
+    cond do
+      Transformer.get_persisted(dsl, :ash_typed_sql_table_pending, false) ->
+        IO.warn(
+          "#{inspect(resource)} query #{inspect(query.name)} skipped, because its table has no snapshot yet. Run `mix ash.codegen`."
+        )
 
-        {:error, message} ->
-          {:error,
-           DslError.exception(
-             module: resource,
-             path: [:typed_sql, :query, query.name, :as],
-             message: "#{Info.query_source(query)} cannot be `as #{inspect(as)}`: #{message}"
-           )}
-      end
-    else
-      IO.warn(
-        "#{inspect(resource)} query #{inspect(query.name)} skipped, because #{Info.query_source(query)} has changed since its snapshot. Run `mix ash.codegen`."
-      )
+        :stale
 
-      :stale
+      Info.query_sql(dsl, query) == {:ok, snapshot["sql"]} and
+          Enum.all?(snapshot["writes"], &Map.has_key?(&1, "schema")) ->
+        case Crud.check(dsl, query, snapshot) do
+          {:ok, fit} ->
+            generate(dsl, resource, query, snapshot, enums, fit)
+
+          {:error, message} ->
+            {:error,
+             DslError.exception(
+               module: resource,
+               path: [:typed_sql, :query, query.name, :as],
+               message: "#{Info.query_source(query)} cannot be `as #{inspect(as)}`: #{message}"
+             )}
+        end
+
+      true ->
+        IO.warn(
+          "#{inspect(resource)} query #{inspect(query.name)} skipped, because #{Info.query_source(query)} has changed since its snapshot. Run `mix ash.codegen`."
+        )
+
+        :stale
     end
   end
 

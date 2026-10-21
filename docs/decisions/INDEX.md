@@ -22,6 +22,9 @@ Start from [`ADR-000-TEMPLATE.md`](ADR-000-TEMPLATE.md). Design docs live in [`.
 | [011](ADR-011-query-arguments-are-ash-arguments-mapped-by-position.md) | Query arguments are Ash arguments mapped by position | accepted |
 | [012](ADR-012-typed-sql-actions-bypass-multitenancy.md) | Generated read, create, update and destroy actions bypass multitenancy | accepted |
 | [013](ADR-013-define-interface-on-the-resource.md) | `define_interface?` adds resource-level code interfaces, not domain ones | accepted |
+| [014](ADR-014-typed-table-describes-and-never-migrates.md) | `typed_table` describes an existing table, never migrates it, and generates no actions | accepted |
+| [015](ADR-015-belongs-to-destinations-come-from-references.md) | `belongs_to` destinations come from `references`, behind `relationships? true` | accepted |
+| [016](ADR-016-writes-check-compares-schema-and-table.md) | The writes check compares schema-qualified table names | corrects an earlier belief |
 
 ## Documentation
 

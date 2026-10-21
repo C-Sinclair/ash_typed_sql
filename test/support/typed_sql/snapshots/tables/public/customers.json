@@ -1,0 +1,92 @@
+{
+  "columns": [
+    {
+      "default": true,
+      "name": "id",
+      "not_null": true,
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "default": false,
+      "name": "name",
+      "not_null": true,
+      "type": {
+        "type": "string"
+      }
+    },
+    {
+      "default": false,
+      "name": "email",
+      "not_null": false,
+      "type": {
+        "type": "ci_string"
+      }
+    },
+    {
+      "default": true,
+      "name": "tier",
+      "not_null": true,
+      "type": {
+        "name": "customer_tier",
+        "schema": "public",
+        "type": "enum",
+        "values": [
+          "bronze",
+          "silver",
+          "gold"
+        ]
+      }
+    },
+    {
+      "default": true,
+      "name": "tags",
+      "not_null": true,
+      "type": {
+        "of": {
+          "type": "string"
+        },
+        "type": "array"
+      }
+    },
+    {
+      "default": true,
+      "name": "active",
+      "not_null": true,
+      "type": {
+        "type": "boolean"
+      }
+    },
+    {
+      "default": false,
+      "name": "settings",
+      "not_null": false,
+      "type": {
+        "type": "map"
+      }
+    },
+    {
+      "default": false,
+      "name": "born_on",
+      "not_null": false,
+      "type": {
+        "type": "date"
+      }
+    }
+  ],
+  "foreign_keys": [],
+  "identities": [
+    {
+      "columns": [
+        "email"
+      ],
+      "index": "customers_unique_email_index"
+    }
+  ],
+  "primary_key": [
+    "id"
+  ],
+  "schema": "public",
+  "table": "customers"
+}

@@ -26,3 +26,5 @@ Base tables live in the `shelf` schema. Each `typed_view` file selects from one 
 ## What would fix it
 
 Record the schema of each `ModifyTable` relation in the snapshot and compare schema and table. Then decide whether a write through an auto-updatable view counts as a write to the view resource. If it does, `check_writes/3` should accept the view's base table by OID, rather than by a name that happens to match.
+
+**Resolved:** 2026-10-21. `typed_table` generates the attributes of a table resource ([ADR-014](../decisions/ADR-014-typed-table-describes-and-never-migrates.md)), and the writes check compares schema and table ([ADR-016](../decisions/ADR-016-writes-check-compares-schema-and-table.md)). Writing through an auto-updatable view into another schema is now refused.

@@ -26,7 +26,7 @@ defmodule AshTypedSql.Crud do
     names = Enum.map(query.arguments, & &1.name)
 
     with :ok <- check_kind(query.as, kind),
-         :ok <- check_writes(query.as, snapshot["writes"], table),
+         :ok <- check_writes(query.as, snapshot["writes"], schema, table),
          :ok <- check_sources(snapshot["columns"], schema, table) do
       fields = Enum.map(snapshot["columns"], &by_column[&1["source"]["column"]])
 
@@ -42,22 +42,27 @@ defmodule AshTypedSql.Crud do
   defp check_kind(as, kind),
     do: {:error, "Postgres classifies the statement as #{inspect(kind)}, not #{inspect(as)}"}
 
-  defp check_writes(:read, [], _table), do: :ok
+  defp check_writes(:read, [], _schema, _table), do: :ok
 
-  defp check_writes(:read, writes, _table),
+  defp check_writes(:read, writes, _schema, _table),
     do: {:error, "the statement writes #{describe_writes(writes)}"}
 
-  defp check_writes(as, [%{"operation" => operation, "table" => table}], table)
+  defp check_writes(
+         as,
+         [%{"operation" => operation, "schema" => schema, "table" => table}],
+         schema,
+         table
+       )
        when :erlang.map_get(as, @operations) == operation,
        do: :ok
 
-  defp check_writes(as, writes, table),
+  defp check_writes(as, writes, schema, table),
     do:
       {:error,
-       "the statement must only #{@operations[as]} into #{table}, but it writes #{describe_writes(writes)}"}
+       "the statement must only #{@operations[as]} into #{schema}.#{table}, but it writes #{describe_writes(writes)}"}
 
   defp describe_writes(writes),
-    do: Enum.map_join(writes, ", ", &"#{&1["operation"]} #{&1["table"]}")
+    do: Enum.map_join(writes, ", ", &"#{&1["operation"]} #{&1["schema"]}.#{&1["table"]}")
 
   defp check_sources(columns, schema, table) do
     case Enum.reject(
