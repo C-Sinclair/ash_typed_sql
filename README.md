@@ -87,6 +87,8 @@ end
 
 `mix ash.codegen --check` fails when a `.sql` file or the database schema has drifted from its snapshot.
 
+`mix ash.codegen` compiles the project before it writes any snapshot. A resource whose snapshot is missing compiles with a warning. It gets `:term` placeholder attributes for its relationships' source attributes and its view `primary_key`, and placeholder actions for its queries and view read, so relationships and code interfaces compile on the first run. A placeholder action returns an error until codegen has written the snapshot and the project is recompiled ([ADR-017](docs/decisions/ADR-017-missing-snapshots-generate-placeholders.md)).
+
 When Postgres refuses a statement, `mix ash.codegen` names the file, line and column it pointed at, followed by the Postgres message:
 
 ```

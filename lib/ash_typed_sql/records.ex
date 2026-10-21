@@ -5,8 +5,11 @@ defmodule AshTypedSql.Records do
 
   @doc "Runs an opt-in CRUD query and loads each returned row as a resource record."
   def run(resource, name, arguments, get_argument, record) do
-    query = Map.fetch!(Info.queries(resource), name)
+    with {:ok, query} <- Info.fetch_query(resource, name),
+         do: run_query(resource, query, arguments, get_argument, record)
+  end
 
+  defp run_query(resource, query, arguments, get_argument, record) do
     repo =
       AshPostgres.DataLayer.Info.repo(resource, if(query.as == :read, do: :read, else: :mutate))
 

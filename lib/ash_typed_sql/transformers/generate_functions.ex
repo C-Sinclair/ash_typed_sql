@@ -29,6 +29,7 @@ defmodule AshTypedSql.Transformers.GenerateFunctions do
             "#{inspect(resource)} function #{inspect(function.name)} has no snapshot at #{path}. Run `mix ash.codegen`."
           )
 
+          define_placeholder(Info.expression_module(dsl, function), function)
           {:cont, {:ok, dsl}}
       end
     end)
@@ -130,6 +131,20 @@ defmodule AshTypedSql.Transformers.GenerateFunctions do
             unquote(clauses ++ quote(do: (nil -> :unknown)))
           end
         end
+
+        def expression(_data_layer, _args), do: :unknown
+      end,
+      Macro.Env.location(__ENV__)
+    )
+  end
+
+  # Ash calls `name/0` on every module in `config :ash, :custom_expressions`, so the module must exist before its first snapshot. It matches no call.
+  defp define_placeholder(module, function) do
+    Module.create(
+      module,
+      quote do
+        @moduledoc false
+        use Ash.CustomExpression, name: unquote(function.name), arguments: []
 
         def expression(_data_layer, _args), do: :unknown
       end,

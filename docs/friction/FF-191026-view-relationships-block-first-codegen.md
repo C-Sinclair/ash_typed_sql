@@ -37,3 +37,5 @@ Once the snapshots are committed, a fresh clone compiles directly.
 ## What would fix it
 
 When a view snapshot is missing, `GenerateView` could generate the attributes that `primary_key` names with type `:term`, or `mix ash.codegen` could run the AshTypedSql steps before compiling the rest of the app. Either lets the first run complete.
+
+**Resolved:** 2026-10-21. A missing snapshot now generates placeholder attributes for relationship sources and placeholder actions for queries and views, so the first `mix ash.codegen` compiles ([ADR-017](../decisions/ADR-017-missing-snapshots-generate-placeholders.md)).

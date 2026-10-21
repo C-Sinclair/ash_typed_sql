@@ -40,7 +40,7 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
             "#{inspect(resource)} query #{inspect(query.name)} has no snapshot at #{path}. Run `mix ash.codegen`."
           )
 
-          {:cont, {:ok, dsl, enums}}
+          {:cont, {:ok, placeholder(dsl, query), enums}}
       end
     end)
     |> case do
@@ -80,11 +80,7 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
     # The opt-in is only checked against a snapshot of the current SQL, so a stale snapshot never blocks the compile that `mix ash.codegen` needs. Snapshots written before writes recorded their schema count as stale.
     cond do
       Transformer.get_persisted(dsl, :ash_typed_sql_table_pending, false) ->
-        IO.warn(
-          "#{inspect(resource)} query #{inspect(query.name)} skipped, because its table has no snapshot yet. Run `mix ash.codegen`."
-        )
-
-        :stale
+        {:ok, placeholder(dsl, query), enums}
 
       Info.query_sql(dsl, query) == {:ok, snapshot["sql"]} and
           Enum.all?(snapshot["writes"], &Map.has_key?(&1, "schema")) ->
@@ -169,6 +165,35 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
 
       {:ok, dsl, enums}
     end
+  end
+
+  # Without a snapshot, the action takes the declared arguments as `:term`, so code interfaces and references to it compile. Running it returns an error.
+  defp placeholder(dsl, query) do
+    arguments = AshTypedSql.Placeholder.arguments(query.arguments)
+    type = query.as || :action
+
+    options =
+      case type do
+        :action -> [returns: :term, run: {AshTypedSql.Run, query: query.name}]
+        :read -> [manual: {AshTypedSql.ManualRead, query: query.name}]
+        _ -> [accept: [], manual: {AshTypedSql.ManualWrite, query: query.name}]
+      end
+
+    action =
+      Transformer.build_entity!(
+        Ash.Resource.Dsl,
+        [:actions],
+        type,
+        Enum.reject(
+          [name: query.name, description: query.description, arguments: arguments] ++
+            multitenancy(type) ++ options,
+          &is_nil(elem(&1, 1))
+        )
+      )
+
+    dsl
+    |> Transformer.add_entity([:actions], action)
+    |> define_interface(query, arguments)
   end
 
   defp define_interface(dsl, query, arguments) do

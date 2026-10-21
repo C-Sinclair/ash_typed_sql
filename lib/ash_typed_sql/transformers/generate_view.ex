@@ -34,7 +34,7 @@ defmodule AshTypedSql.Transformers.GenerateView do
 
       {:error, :enoent} ->
         IO.warn("#{inspect(resource)} has no view snapshot at #{path}. Run `mix ash.codegen`.")
-        {:ok, dsl}
+        {:ok, placeholder(dsl, view)}
     end
   end
 
@@ -79,6 +79,24 @@ defmodule AshTypedSql.Transformers.GenerateView do
       :stale -> {:ok, dsl}
       error -> error
     end
+  end
+
+  defp placeholder(dsl, view) do
+    arguments = AshTypedSql.Placeholder.arguments(view.arguments)
+
+    read =
+      Transformer.build_entity!(Ash.Resource.Dsl, [:actions], :read,
+        name: :read,
+        primary?: true,
+        arguments: arguments,
+        multitenancy: :bypass
+      )
+
+    dsl
+    |> AshTypedSql.Placeholder.attributes(view.primary_key)
+    |> Transformer.add_entity([:actions], read)
+    |> add_refresh_action(view)
+    |> define_interface(view, arguments)
   end
 
   defp match_arguments(resource, view, snapshot) do

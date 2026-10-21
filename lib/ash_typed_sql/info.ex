@@ -57,6 +57,18 @@ defmodule AshTypedSql.Info do
   def writes(resource, action), do: get_in(queries(resource), [action, :writes]) || []
 
   @doc false
+  def fetch_query(resource, name) do
+    case Map.fetch(queries(resource), name) do
+      {:ok, query} ->
+        {:ok, query}
+
+      :error ->
+        {:error,
+         "#{inspect(resource)}.#{name} was compiled without a snapshot. Run `mix ash.codegen`, then recompile."}
+    end
+  end
+
+  @doc false
   def queries(resource),
     do: Spark.Dsl.Extension.get_persisted(resource, :ash_typed_sql_queries, %{})
 end

@@ -5,8 +5,11 @@ defmodule AshTypedSql.Run do
 
   @impl true
   def run(input, opts, _context) do
-    query = Map.fetch!(AshTypedSql.Info.queries(input.resource), opts[:query])
+    with {:ok, query} <- AshTypedSql.Info.fetch_query(input.resource, opts[:query]),
+         do: run(input, query)
+  end
 
+  defp run(input, query) do
     repo =
       AshPostgres.DataLayer.Info.repo(
         input.resource,

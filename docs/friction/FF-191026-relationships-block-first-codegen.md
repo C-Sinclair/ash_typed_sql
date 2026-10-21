@@ -34,3 +34,5 @@ Removed every `relationships` block and replaced the domain with one that lists 
 ## What would fix it
 
 A `mix ash_typed_sql.codegen` entry point that describes SQL from the DSL without compiling resource bodies, or transformers that skip relationships and interfaces whose targets are missing while a snapshot is absent.
+
+**Resolved:** 2026-10-21. A missing snapshot now generates placeholder attributes for relationship sources and placeholder actions for queries and views, so the first `mix ash.codegen` compiles ([ADR-017](../decisions/ADR-017-missing-snapshots-generate-placeholders.md)).

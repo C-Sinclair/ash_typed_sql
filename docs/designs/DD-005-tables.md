@@ -2,7 +2,7 @@
 
 **Status:** built
 **Date:** 2026-10-21
-**Decisions:** [ADR-003](../decisions/ADR-003-describe-at-codegen-compile-from-snapshots.md), [ADR-014](../decisions/ADR-014-typed-table-describes-and-never-migrates.md), [ADR-015](../decisions/ADR-015-belongs-to-destinations-come-from-references.md), [ADR-016](../decisions/ADR-016-writes-check-compares-schema-and-table.md)
+**Decisions:** [ADR-003](../decisions/ADR-003-describe-at-codegen-compile-from-snapshots.md), [ADR-014](../decisions/ADR-014-typed-table-describes-and-never-migrates.md), [ADR-015](../decisions/ADR-015-belongs-to-destinations-come-from-references.md), [ADR-016](../decisions/ADR-016-writes-check-compares-schema-and-table.md), [ADR-017](../decisions/ADR-017-missing-snapshots-generate-placeholders.md)
 **Lands in:** `AshTypedSql.Table`, `AshTypedSql.Table.Info`, `AshTypedSql.Codegen.Table`, `AshTypedSql.Transformers.GenerateTable`
 
 ## What this is
@@ -15,6 +15,7 @@ A `typed_table "orders"` entity that turns an existing Postgres table into the a
 2. The generated attributes match the table: types through `AshTypedSql.TypeMap`, `allow_nil?` from `attnotnull`, `generated?` from a default, identity or generated column. Test: "attributes".
 3. Codegen never writes a migration for the table. Test: "codegen" "writes no migration".
 4. A write into another schema's table of the same name is refused. Test: `AshTypedSql.CrudTest` "the writes check".
+5. Resources with relationships and code interfaces compile with no snapshots, and codegen then writes them. Test: `AshTypedSql.FirstCodegenTest`.
 
 ## Who uses it
 
@@ -47,7 +48,7 @@ At compile time, `GenerateTable` adds:
 - with `relationships? true`, one `belongs_to` per single-column foreign key on an `_id` column, with `define_attribute? false`,
 - `postgres` `table`, `schema` (when not `public`) and `migrate? false`, unless the user set `table` or `schema`.
 
-When the snapshot is missing, compilation warns, and `GenerateQueries` skips the resource's CRUD opt-ins rather than checking them against no attributes. Codegen skips the opt-in checks for that resource too. The next compile checks them.
+When the snapshot is missing, compilation warns and generates placeholders instead ([ADR-017](../decisions/ADR-017-missing-snapshots-generate-placeholders.md)). `GenerateQueries` gives the resource's CRUD opt-ins placeholder actions rather than checking them against no attributes, and codegen skips the opt-in checks for that resource. The next compile checks them.
 
 ## Trade-offs
 

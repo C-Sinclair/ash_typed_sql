@@ -37,7 +37,12 @@ defmodule AshTypedSql.Transformers.GenerateTable do
 
       {:error, :enoent} ->
         IO.warn("#{inspect(resource)} has no table snapshot at #{path}. Run `mix ash.codegen`.")
-        {:ok, Transformer.persist(dsl, :ash_typed_sql_table_pending, true)}
+
+        {:ok,
+         dsl
+         |> AshTypedSql.Placeholder.attributes()
+         |> Transformer.set_option([:resource], :require_primary_key?, false)
+         |> Transformer.persist(:ash_typed_sql_table_pending, true)}
     end
   end
 
