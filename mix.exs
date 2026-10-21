@@ -70,7 +70,7 @@ defmodule AshTypedSql.MixProject do
         "Typed functions": [~r/^AshTypedSql\.Functions?/],
         Codegen: [~r/^AshTypedSql\.Codegen/, AshTypedSql.TypeMap],
         Transformers: [~r/^AshTypedSql\.Transformers/],
-        "Mix tasks": [~r/^Mix\.Tasks/]
+        "Mix tasks": [~r/^Mix\.Tasks/, AshTypedSql.Generator]
       ]
     ]
   end

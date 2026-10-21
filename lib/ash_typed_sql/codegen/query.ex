@@ -89,23 +89,37 @@ defmodule AshTypedSql.Codegen.Query do
 
   @doc "Returns `{snapshot_path, json}` for every query on `resources`, described through a connection built from `config`."
   def snapshots(config, resources) do
+    with_connections(config, fn conn, describe_conn ->
+      for resource <- resources, query <- Info.typed_sql(resource) do
+        snapshot = snapshot(conn, describe_conn, resource, query)
+        {Info.query_snapshot_path(resource, query), encode(snapshot)}
+      end
+    end)
+  end
+
+  @doc "Calls `fun` with a query connection and a describe connection built from `config`, and closes both after."
+  def with_connections(config, fun) do
     config = connection_config(config)
     {:ok, conn} = Postgrex.start_link(config)
     {:ok, describe_conn} = Describe.connect(config)
 
     try do
-      for resource <- resources, query <- Info.typed_sql(resource) do
-        snapshot = snapshot(conn, describe_conn, resource, query)
-        {Info.query_snapshot_path(resource, query), Jason.encode!(snapshot, pretty: true) <> "\n"}
-      end
+      fun.(conn, describe_conn)
     after
       Describe.disconnect(describe_conn)
       GenServer.stop(conn)
     end
   end
 
-  @doc "Describes one query and returns its snapshot as a JSON-ready map."
-  def snapshot(conn, describe_conn, resource, query) do
+  @doc "Encodes a snapshot as the JSON written to its file."
+  def encode(snapshot), do: Jason.encode!(snapshot, pretty: true) <> "\n"
+
+  @doc """
+  Describes one query and returns its snapshot as a JSON-ready map.
+
+  With `check_arguments?: false`, the declared arguments are not counted against the parameters, so a generator can describe a query before it writes the arguments.
+  """
+  def snapshot(conn, describe_conn, resource, query, opts \\ []) do
     {:ok, sql} = Info.query_sql(resource, query)
     label = "#{inspect(resource)} query #{inspect(query.name)} (#{Info.query_source(query)})"
 
@@ -158,6 +172,7 @@ defmodule AshTypedSql.Codegen.Query do
         else: 0
 
     with false <- pending?,
+         true <- Keyword.get(opts, :check_arguments?, true),
          {:error, message} <-
            AshTypedSql.Argument.check_count(
              Enum.map(query.arguments, & &1.name),

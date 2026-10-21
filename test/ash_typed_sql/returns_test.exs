@@ -1,5 +1,5 @@
 defmodule AshTypedSql.ReturnsTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   import ExUnit.CaptureIO
 
@@ -94,6 +94,14 @@ defmodule AshTypedSql.ReturnsTest do
 
       assert Exception.message(error) =~ "mix ash_typed_sql.gen.returns"
       assert Exception.message(error) =~ "--returns"
+    end
+
+    test "compiles a placeholder for a missing module while gen.returns compiles" do
+      Application.put_env(:ash_typed_sql, :generating_returns?, true)
+      on_exit(fn -> Application.delete_env(:ash_typed_sql, :generating_returns?) end)
+
+      module = define_resource("returns #{inspect(__MODULE__)}.Missing")
+      assert %{returns: {:array, Ash.Type.Term}} = Ash.Resource.Info.action(module, :q)
     end
 
     test "refuses a module that is not an Ash.TypedStruct" do
