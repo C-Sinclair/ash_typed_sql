@@ -1,4 +1,4 @@
-defmodule Library.Repo.Migrations.CatalogView20261019123642 do
+defmodule Library.Repo.Migrations.CatalogView20261021122632 do
   use Ecto.Migration
 
   def up do

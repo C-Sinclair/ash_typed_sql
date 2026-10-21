@@ -14,7 +14,7 @@ export type AuthorResourceSchema = {
   bornOn: AshDate | null;
   id: UUID;
   name: string;
-  books: { __type: "Relationship"; __array: true; __resource: BookResourceSchema; __filterInput: BookFilterInput; __sortField: BookSortField; };
+  books: { __type: "Relationship"; __array: true; __resource: BookResourceSchema; __pagination: "mixed"; __filterInput: BookFilterInput; __sortField: BookSortField; };
   stats: { __type: "Relationship"; __resource: AuthorStatsResourceSchema | null; };
 };
 
@@ -62,7 +62,7 @@ export type BookResourceSchema = {
   publishedOn: AshDate | null;
   title: string;
   author: { __type: "Relationship"; __resource: AuthorResourceSchema | null; };
-  loans: { __type: "Relationship"; __array: true; __resource: LoanResourceSchema; __filterInput: LoanFilterInput; __sortField: LoanSortField; };
+  loans: { __type: "Relationship"; __array: true; __resource: LoanResourceSchema; __pagination: "mixed"; __filterInput: LoanFilterInput; __sortField: LoanSortField; };
 };
 
 
@@ -114,7 +114,7 @@ export type MemberResourceSchema = {
   id: UUID;
   joinedOn: AshDate;
   name: string;
-  loans: { __type: "Relationship"; __array: true; __resource: LoanResourceSchema; __filterInput: LoanFilterInput; __sortField: LoanSortField; };
+  loans: { __type: "Relationship"; __array: true; __resource: LoanResourceSchema; __pagination: "mixed"; __filterInput: LoanFilterInput; __sortField: LoanSortField; };
 };
 
 

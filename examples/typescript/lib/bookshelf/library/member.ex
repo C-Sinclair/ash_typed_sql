@@ -2,14 +2,16 @@ defmodule Bookshelf.Library.Member do
   use Ash.Resource,
     domain: Bookshelf.Library,
     data_layer: AshPostgres.DataLayer,
-    extensions: [AshTypedSql.View, AshTypescript.Resource]
+    extensions: [AshTypedSql.Table, AshTypescript.Resource]
 
-  typed_view "views/members.sql" do
-    primary_key [:id]
-  end
+  typed_table "members", schema: "shelf"
 
   postgres do
     repo(Bookshelf.Repo)
+  end
+
+  actions do
+    defaults [:read]
   end
 
   typescript do

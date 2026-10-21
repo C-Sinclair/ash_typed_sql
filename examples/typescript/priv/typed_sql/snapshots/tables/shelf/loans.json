@@ -1,0 +1,86 @@
+{
+  "columns": [
+    {
+      "default": true,
+      "name": "id",
+      "not_null": true,
+      "type": {
+        "type": "integer"
+      }
+    },
+    {
+      "default": false,
+      "name": "book_id",
+      "not_null": true,
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "default": false,
+      "name": "member_id",
+      "not_null": true,
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "default": true,
+      "name": "borrowed_on",
+      "not_null": true,
+      "type": {
+        "type": "date"
+      }
+    },
+    {
+      "default": false,
+      "name": "due_on",
+      "not_null": true,
+      "type": {
+        "type": "date"
+      }
+    },
+    {
+      "default": false,
+      "name": "returned_on",
+      "not_null": false,
+      "type": {
+        "type": "date"
+      }
+    }
+  ],
+  "foreign_keys": [
+    {
+      "columns": [
+        "book_id"
+      ],
+      "constraint": "loans_book_id_fkey",
+      "references": {
+        "columns": [
+          "id"
+        ],
+        "schema": "shelf",
+        "table": "books"
+      }
+    },
+    {
+      "columns": [
+        "member_id"
+      ],
+      "constraint": "loans_member_id_fkey",
+      "references": {
+        "columns": [
+          "id"
+        ],
+        "schema": "shelf",
+        "table": "members"
+      }
+    }
+  ],
+  "identities": [],
+  "primary_key": [
+    "id"
+  ],
+  "schema": "shelf",
+  "table": "loans"
+}

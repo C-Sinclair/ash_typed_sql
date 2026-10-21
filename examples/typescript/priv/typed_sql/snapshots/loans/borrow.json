@@ -77,6 +77,7 @@
   "writes": [
     {
       "operation": "insert",
+      "schema": "shelf",
       "table": "loans"
     }
   ]

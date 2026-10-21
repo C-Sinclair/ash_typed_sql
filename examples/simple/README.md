@@ -1,6 +1,6 @@
 # examples/simple
 
-A bookshelf app with no web layer, driven entirely by SQL. The schema is plain SQL in an Ecto migration. Every resource holds only `typed_sql`, `typed_view` and `typed_sql_functions` sections, relationships, and `define_interface? true`. The code interfaces are generated on each resource, and the `Library` domain defines only `get_book`. Attributes and actions come from the snapshots that `mix ash.codegen` writes.
+A bookshelf app with no web layer, driven entirely by SQL. The schema is plain SQL in an Ecto migration. Every resource holds only `typed_table`, `typed_sql`, `typed_view` and `typed_sql_functions` sections, relationships, and `define_interface? true`. The code interfaces are generated on each resource, and the `Library` domain defines only `get_book`. Attributes and actions come from the snapshots that `mix ash.codegen` writes.
 
 ## What it shows
 
@@ -15,11 +15,12 @@ A bookshelf app with no web layer, driven entirely by SQL. The schema is plain S
 | `as :create` | `Library.Loan` | `priv/typed_sql/loans/lend_book.sql` | `Library.Loan.lend_book/3` |
 | `as :update` | `Library.Loan` | `priv/typed_sql/loans/return_book.sql` | `Library.Loan.return_book/1` |
 | `as :destroy` | `Library.Loan` | `priv/typed_sql/loans/cancel_loan.sql` | `Library.Loan.cancel_loan/1` |
+| Existing table with a generated `belongs_to` | `Library.Loan` | `loans` in the create-tables migration | `Library.Loan.read/0` |
 | SQL function as a custom expression | `Library.Loan` | `priv/typed_sql/functions/days_overdue.sql` | `days_overdue(due_on, ^today)` in a filter |
 
 `add_book.sql` upserts the author and inserts the book in one statement, so `EXPLAIN` classifies it as `:mixed`. It stays a generic action.
 
-`Library.Loan` gets its attributes from `typed_view "tables/loans.sql"`, which reads `select * from loans`, because the CRUD opt-ins check their columns against declared attributes. The view migration that codegen wrote for it is deleted. [FF-191026-crud-opt-in-needs-declared-attributes](../../docs/friction/FF-191026-crud-opt-in-needs-declared-attributes.md) explains why.
+`Library.Loan` gets its attributes from `typed_table "loans"`, which the CRUD opt-ins check their columns against. `relationships? true` with `references books: Library.Catalog` generates `belongs_to :book` from the `loans_book_id_fkey` foreign key, pointing at the view, since the `books` table has no resource of its own.
 
 `priv/demo.exs` runs one section per row of the table and prints what each call returns. `test/library_test.exs` asserts the same calls.
 

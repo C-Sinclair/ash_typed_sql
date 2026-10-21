@@ -2,10 +2,12 @@ defmodule Bookshelf.Library.Book do
   use Ash.Resource,
     domain: Bookshelf.Library,
     data_layer: AshPostgres.DataLayer,
-    extensions: [AshTypedSql.View, AshTypedSql, AshTypescript.Resource]
+    extensions: [AshTypedSql.Table, AshTypedSql, AshTypescript.Resource]
 
-  typed_view "views/books.sql" do
-    primary_key [:id]
+  typed_table "books" do
+    schema "shelf"
+    relationships? true
+    references authors: Bookshelf.Library.Author
   end
 
   typed_sql do
@@ -42,17 +44,15 @@ defmodule Bookshelf.Library.Book do
     repo(Bookshelf.Repo)
   end
 
+  actions do
+    defaults [:read]
+  end
+
   typescript do
     type_name "Book"
   end
 
   relationships do
-    belongs_to :author, Bookshelf.Library.Author do
-      source_attribute :author_id
-      define_attribute? false
-      public? true
-    end
-
     has_many :loans, Bookshelf.Library.Loan, public?: true
   end
 end

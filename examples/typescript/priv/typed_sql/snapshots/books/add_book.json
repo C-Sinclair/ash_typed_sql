@@ -4,8 +4,8 @@
       "name": "id",
       "source": {
         "column": "id",
-        "not_null": false,
-        "schema": "public",
+        "not_null": true,
+        "schema": "shelf",
         "table": "books"
       },
       "type": {
@@ -16,8 +16,8 @@
       "name": "author_id",
       "source": {
         "column": "author_id",
-        "not_null": false,
-        "schema": "public",
+        "not_null": true,
+        "schema": "shelf",
         "table": "books"
       },
       "type": {
@@ -28,8 +28,8 @@
       "name": "title",
       "source": {
         "column": "title",
-        "not_null": false,
-        "schema": "public",
+        "not_null": true,
+        "schema": "shelf",
         "table": "books"
       },
       "type": {
@@ -41,7 +41,7 @@
       "source": {
         "column": "published_on",
         "not_null": false,
-        "schema": "public",
+        "schema": "shelf",
         "table": "books"
       },
       "type": {
@@ -52,8 +52,8 @@
       "name": "copies",
       "source": {
         "column": "copies",
-        "not_null": false,
-        "schema": "public",
+        "not_null": true,
+        "schema": "shelf",
         "table": "books"
       },
       "type": {
@@ -76,10 +76,11 @@
       "type": "integer"
     }
   ],
-  "sql": "insert into books (author_id, title, published_on, copies)\nvalues ($1, $2, $3, $4)\nreturning id, author_id, title, published_on, copies\n",
+  "sql": "insert into shelf.books (author_id, title, published_on, copies)\nvalues ($1, $2, $3, $4)\nreturning id, author_id, title, published_on, copies\n",
   "writes": [
     {
       "operation": "insert",
+      "schema": "shelf",
       "table": "books"
     }
   ]

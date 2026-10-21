@@ -1,4 +1,4 @@
-defmodule Library.Repo.Migrations.TypedSqlFunctionDaysOverdue20261019123641 do
+defmodule Library.Repo.Migrations.TypedSqlFunctionDaysOverdue20261021122631 do
   use Ecto.Migration
 
   def up do

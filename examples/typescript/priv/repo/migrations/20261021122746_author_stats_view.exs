@@ -1,4 +1,4 @@
-defmodule Bookshelf.Repo.Migrations.AuthorStatsView20261019123707 do
+defmodule Bookshelf.Repo.Migrations.AuthorStatsView20261021122746 do
   use Ecto.Migration
 
   def up do

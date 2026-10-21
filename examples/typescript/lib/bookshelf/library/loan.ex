@@ -2,10 +2,12 @@ defmodule Bookshelf.Library.Loan do
   use Ash.Resource,
     domain: Bookshelf.Library,
     data_layer: AshPostgres.DataLayer,
-    extensions: [AshTypedSql.View, AshTypedSql, AshTypedSql.Functions, AshTypescript.Resource]
+    extensions: [AshTypedSql.Table, AshTypedSql, AshTypedSql.Functions, AshTypescript.Resource]
 
-  typed_view "views/loans.sql" do
-    primary_key [:id]
+  typed_table "loans" do
+    schema "shelf"
+    relationships? true
+    references books: Bookshelf.Library.Book, members: Bookshelf.Library.Member
   end
 
   typed_sql do
@@ -29,22 +31,12 @@ defmodule Bookshelf.Library.Loan do
     repo(Bookshelf.Repo)
   end
 
-  typescript do
-    type_name "Loan"
+  actions do
+    defaults [:read]
   end
 
-  relationships do
-    belongs_to :book, Bookshelf.Library.Book do
-      source_attribute :book_id
-      define_attribute? false
-      public? true
-    end
-
-    belongs_to :member, Bookshelf.Library.Member do
-      source_attribute :member_id
-      define_attribute? false
-      public? true
-    end
+  typescript do
+    type_name "Loan"
   end
 
   calculations do

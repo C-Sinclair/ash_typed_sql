@@ -83,6 +83,7 @@
   "writes": [
     {
       "operation": "delete",
+      "schema": "public",
       "table": "loans"
     }
   ]

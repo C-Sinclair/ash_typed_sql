@@ -3,11 +3,12 @@ defmodule Library.Loan do
   use Ash.Resource,
     domain: Library,
     data_layer: AshPostgres.DataLayer,
-    extensions: [AshTypedSql.View, AshTypedSql, AshTypedSql.Functions]
+    extensions: [AshTypedSql.Table, AshTypedSql, AshTypedSql.Functions]
 
-  # The CRUD opt-ins check their columns against the resource's attributes, so a typed_view over the table generates them. See docs/friction/FF-191026-crud-opt-in-needs-declared-attributes.md.
-  typed_view "tables/loans.sql" do
-    primary_key [:id]
+  # The `books` table has no resource of its own, so the generated `belongs_to :book` points at the view that reads it.
+  typed_table "loans" do
+    relationships? true
+    references books: Library.Catalog
   end
 
   typed_sql do
@@ -46,14 +47,14 @@ defmodule Library.Loan do
   end
 
   postgres do
-    table "loans"
     repo Library.Repo
   end
 
-  relationships do
-    belongs_to :book, Library.Catalog do
-      source_attribute :book_id
-      define_attribute? false
-    end
+  actions do
+    defaults [:read]
+  end
+
+  code_interface do
+    define :read
   end
 end

@@ -1,0 +1,35 @@
+{
+  "columns": [
+    {
+      "default": true,
+      "name": "id",
+      "not_null": true,
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "default": false,
+      "name": "name",
+      "not_null": true,
+      "type": {
+        "type": "string"
+      }
+    },
+    {
+      "default": false,
+      "name": "born_on",
+      "not_null": false,
+      "type": {
+        "type": "date"
+      }
+    }
+  ],
+  "foreign_keys": [],
+  "identities": [],
+  "primary_key": [
+    "id"
+  ],
+  "schema": "shelf",
+  "table": "authors"
+}

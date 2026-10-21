@@ -1,14 +1,14 @@
 # Bookshelf: ash_typed_sql with ash_typescript
 
-A Phoenix app driven entirely by SQL. Plain SQL migrations create the tables. `.sql` files define every view, query and function. ash_typed_sql turns those files into Ash resources, actions and a custom expression. ash_typescript exposes each action as a typed RPC function, and a small TypeScript front end calls each one.
+A Phoenix app driven entirely by SQL. Plain SQL migrations create the tables. `typed_table` describes them, and `.sql` files define every view, query and function. ash_typed_sql turns those files into Ash resources, actions and a custom expression. ash_typescript exposes each action as a typed RPC function, and a small TypeScript front end calls each one.
 
-The resources declare no attributes and no actions by hand. Each one holds `typed_view`, `typed_sql` or `typed_sql_functions` sections, plus relationships, one calculation and a `typescript` type name.
+The resources declare no attributes by hand. Each one holds `typed_table`, `typed_view`, `typed_sql` or `typed_sql_functions` sections, plus `defaults [:read]` on the table resources, `has_many` relationships, one calculation and a `typescript` type name.
 
 ## What it shows
 
 | Feature | SQL | Resource | RPC function |
 |---|---|---|---|
-| View with a relationship | `priv/typed_sql/views/books.sql` | `Bookshelf.Library.Book` (`belongs_to :author`) | `listBooks` |
+| Table with a generated `belongs_to` | `shelf.books` in the create-tables migration | `Bookshelf.Library.Book` (`belongs_to :author`) | `listBooks` |
 | Generic read query | `priv/typed_sql/books/top_rated.sql` | `Book`, action `:top_rated` | `topRatedBooks` |
 | `as :read` opt-in | `priv/typed_sql/books/by_author.sql` | `Book`, action `:by_author` | `booksByAuthor` |
 | `as :create` opt-in | `priv/typed_sql/books/add_book.sql` | `Book`, action `:add_book` | `addBook` |
@@ -28,9 +28,9 @@ The other files:
 - `assets/js/app.ts` is the front end. Each section on the page names the feature it calls.
 - `test/bookshelf_web/rpc_test.exs` calls every RPC action through `/rpc/run`.
 
-## Why the tables live in `shelf`
+## Tables in `shelf`
 
-An `as :create`, `as :update` or `as :destroy` query must write the resource's own table and return all of its attributes. A `typed_view` resource is the only kind that gets its attributes from SQL, and its table is the view. So `shelf.books` is the table, `public.books` is the view over it, and the write queries go through the view, which Postgres updates automatically. [FF-191026-crud-opt-in-needs-declared-attributes](../../docs/friction/FF-191026-crud-opt-in-needs-declared-attributes.md) explains why this passes the opt-in check.
+The tables live in the `shelf` schema. `Author`, `Book`, `Member` and `Loan` each declare `typed_table "<name>", schema: "shelf"`, and the CRUD queries on `Book` write `shelf.books` directly. `Book` and `Loan` set `relationships? true` with `references`, so their `belongs_to` relationships come from the foreign keys.
 
 ## Running it
 
@@ -59,4 +59,4 @@ mix ecto.migrate
 
 Codegen describes queries against the dev database, so migrate before running it again when a query reads a view that changed.
 
-A brand-new view resource with relationships cannot compile before its first snapshot exists. [FF-191026-view-relationships-block-first-codegen](../../docs/friction/FF-191026-view-relationships-block-first-codegen.md) lists the staged bootstrap this app went through.
+On a fresh clone with no snapshots, run `mix ash.codegen` twice. The first run compiles against placeholder attributes and actions and writes the ash_typed_sql snapshots. `AshTypescript.Rpc` codegen fails in that run, because the table resources have no primary key yet. The second run recompiles from the snapshots and writes the client.

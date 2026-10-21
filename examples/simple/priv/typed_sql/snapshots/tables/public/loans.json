@@ -1,0 +1,73 @@
+{
+  "columns": [
+    {
+      "default": true,
+      "name": "id",
+      "not_null": true,
+      "type": {
+        "type": "integer"
+      }
+    },
+    {
+      "default": false,
+      "name": "book_id",
+      "not_null": true,
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "default": false,
+      "name": "borrower",
+      "not_null": true,
+      "type": {
+        "type": "string"
+      }
+    },
+    {
+      "default": true,
+      "name": "loaned_on",
+      "not_null": true,
+      "type": {
+        "type": "date"
+      }
+    },
+    {
+      "default": false,
+      "name": "due_on",
+      "not_null": true,
+      "type": {
+        "type": "date"
+      }
+    },
+    {
+      "default": false,
+      "name": "returned_on",
+      "not_null": false,
+      "type": {
+        "type": "date"
+      }
+    }
+  ],
+  "foreign_keys": [
+    {
+      "columns": [
+        "book_id"
+      ],
+      "constraint": "loans_book_id_fkey",
+      "references": {
+        "columns": [
+          "id"
+        ],
+        "schema": "public",
+        "table": "books"
+      }
+    }
+  ],
+  "identities": [],
+  "primary_key": [
+    "id"
+  ],
+  "schema": "public",
+  "table": "loans"
+}

@@ -1,0 +1,65 @@
+{
+  "columns": [
+    {
+      "default": true,
+      "name": "id",
+      "not_null": true,
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "default": false,
+      "name": "author_id",
+      "not_null": true,
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "default": false,
+      "name": "title",
+      "not_null": true,
+      "type": {
+        "type": "string"
+      }
+    },
+    {
+      "default": false,
+      "name": "published_on",
+      "not_null": false,
+      "type": {
+        "type": "date"
+      }
+    },
+    {
+      "default": true,
+      "name": "copies",
+      "not_null": true,
+      "type": {
+        "type": "integer"
+      }
+    }
+  ],
+  "foreign_keys": [
+    {
+      "columns": [
+        "author_id"
+      ],
+      "constraint": "books_author_id_fkey",
+      "references": {
+        "columns": [
+          "id"
+        ],
+        "schema": "shelf",
+        "table": "authors"
+      }
+    }
+  ],
+  "identities": [],
+  "primary_key": [
+    "id"
+  ],
+  "schema": "shelf",
+  "table": "books"
+}

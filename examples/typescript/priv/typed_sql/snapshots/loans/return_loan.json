@@ -35,6 +35,7 @@
   "writes": [
     {
       "operation": "update",
+      "schema": "shelf",
       "table": "loans"
     }
   ]

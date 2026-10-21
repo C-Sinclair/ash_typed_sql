@@ -1,4 +1,4 @@
-defmodule Bookshelf.Repo.Migrations.TypedSqlFunctionDaysOverdue20261019123702 do
+defmodule Bookshelf.Repo.Migrations.TypedSqlFunctionDaysOverdue20261021122745 do
   use Ecto.Migration
 
   def up do
