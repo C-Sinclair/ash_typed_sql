@@ -2,6 +2,7 @@
 
 **Status:** accepted
 **Date:** 2026-10-21
+**Last changed:** 2026-10-21
 **Deciders:** Conor Sinclair
 **Relates to:** [DD-002](../designs/DD-002-query-actions.md), `AshTypedSql.Returns`, `AshTypedSql.Transformers.GenerateQueries`, `Mix.Tasks.AshTypedSql.Gen.Query`, `Mix.Tasks.AshTypedSql.Gen.Returns`
 
@@ -45,4 +46,4 @@ Option A. A single key cannot disagree with `get?`, and the existing `get?` beha
 
 ## Notes
 
-The generator writes enum columns as `:atom` with `one_of` constraints, not as the enum module the resource generates. The resource compiles after its `returns` module, so the module cannot name a type the resource defines. `mix ash_typed_sql.gen.returns` compiles the resource with a placeholder action while the module is missing, and adds the module's conventional path as an `@external_resource` so writing it recompiles the resource.
+The generator writes enum columns as `:atom` with `one_of` constraints, not as the enum module the resource generates. The resource compiles after its `returns` module, so the module cannot name a type the resource defines. A missing `returns` module is always a compile error. `mix ash_typed_sql.gen.returns` does not compile the resource. It finds the `query` in the resource's source with Igniter, reads the query's snapshot from disk, and writes the module from the snapshot columns. When the query has no `returns`, the task adds one, naming `--returns` or `<Resource>.<QueryName>`. `mix ash_typed_sql.gen.query --returns` composes `gen.returns`, which reads the snapshot that `gen.query` added to the same change set.

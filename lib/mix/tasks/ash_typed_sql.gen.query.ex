@@ -67,21 +67,28 @@ if Code.ensure_loaded?(Igniter) do
 
       igniter
       |> Generator.put_snapshot(AshTypedSql.Info.query_snapshot_path(resource, query), snapshot)
-      |> write_returns(opts[:returns], snapshot, query)
       |> Generator.add_extension(resource, AshTypedSql)
       |> Ash.Resource.Igniter.add_block(
         resource,
         :typed_sql,
         query_code(query, opts[:returns], Generator.argument_lines(snapshot, opts[:args] || []))
       )
+      |> write_returns(resource, name, opts[:returns])
     end
 
-    defp write_returns(igniter, nil, _snapshot, _query), do: igniter
+    defp write_returns(igniter, _resource, _name, nil), do: igniter
 
-    defp write_returns(igniter, module, snapshot, query) do
+    # `gen.returns` reads the query and its snapshot from the change set, so it sees what this task added.
+    defp write_returns(igniter, resource, name, module) do
       case Igniter.Project.Module.module_exists(igniter, module) do
-        {true, igniter} -> igniter
-        {false, igniter} -> Generator.write_returns(igniter, module, snapshot, query)
+        {true, igniter} ->
+          igniter
+
+        {false, igniter} ->
+          Igniter.compose_task(igniter, "ash_typed_sql.gen.returns", [
+            inspect(resource),
+            to_string(name)
+          ])
       end
     end
 

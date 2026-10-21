@@ -26,6 +26,32 @@ defmodule Mix.Tasks.AshTypedSql.GenTest do
 
     typed_sql do
       sql_dir "test/support/typed_sql"
+      snapshot_dir "test/support/typed_sql/snapshots"
+    end
+  end
+  """
+
+  @queries_resource """
+  defmodule AshTypedSql.Test.Customer do
+    use Ash.Resource,
+      domain: AshTypedSql.Test.Domain,
+      data_layer: AshPostgres.DataLayer,
+      extensions: [AshTypedSql]
+
+    typed_sql do
+      sql_dir "test/support/typed_sql"
+      snapshot_dir "test/support/typed_sql/snapshots"
+
+      query :top_customer_records, "customers/top_customers.sql" do
+        returns AshTypedSql.Test.Missing.TopRow
+        not_null [:email]
+      end
+
+      query :top_customers, "customers/top_customers.sql"
+
+      query :unsnapshotted, "customers/unsnapshotted.sql" do
+        returns AshTypedSql.Test.Missing.Unsnapshotted
+      end
     end
   end
   """
@@ -190,12 +216,27 @@ defmodule Mix.Tasks.AshTypedSql.GenTest do
   end
 
   describe "gen.returns" do
+    test "writes a missing module from the snapshot without compiling the resource" do
+      igniter =
+        @queries_resource
+        |> project()
+        |> Igniter.compose_task("ash_typed_sql.gen.returns", [
+          "AshTypedSql.Test.Customer",
+          "top_customer_records"
+        ])
+
+      contents = content(igniter, "lib/ash_typed_sql/test/missing/top_row.ex")
+      assert contents =~ "field(:email, :ci_string, allow_nil?: false)"
+      assert contents =~ "field(:tier, :atom, constraints: [one_of: [:bronze, :silver, :gold]]"
+      assert_unchanged(igniter, @resource_path)
+    end
+
     test "rewrites the fields of an existing returns module and keeps the rest" do
       igniter =
-        @typed_sql_resource
+        @queries_resource
         |> project(%{
-          "lib/ash_typed_sql/test/top_customer.ex" => """
-          defmodule AshTypedSql.Test.TopCustomer do
+          "lib/ash_typed_sql/test/missing/top_row.ex" => """
+          defmodule AshTypedSql.Test.Missing.TopRow do
             @moduledoc "Kept."
             use Ash.TypedStruct
 
@@ -207,28 +248,48 @@ defmodule Mix.Tasks.AshTypedSql.GenTest do
         })
         |> Gen.Returns.generate(Customer, :top_customer_records)
 
-      contents = content(igniter, "lib/ash_typed_sql/test/top_customer.ex")
+      contents = content(igniter, "lib/ash_typed_sql/test/missing/top_row.ex")
       assert contents =~ ~s|@moduledoc "Kept."|
       refute contents =~ ":stale"
       assert contents =~ "field(:lifetime_value, :decimal)\n"
     end
 
-    test "creates the returns module when it is absent" do
-      @typed_sql_resource
-      |> project()
-      |> Gen.Returns.generate(Customer, :top_customer_records)
-      |> assert_creates("lib/ash_typed_sql/test/top_customer.ex")
+    test "names the module after the resource and query, and adds returns" do
+      igniter =
+        @queries_resource
+        |> project()
+        |> Gen.Returns.generate(Customer, :top_customers)
+
+      assert content(igniter, @resource_path) =~
+               ~s|query :top_customers, "customers/top_customers.sql" do\n      returns(AshTypedSql.Test.Customer.TopCustomers)\n    end|
+
+      assert_creates(igniter, "lib/ash_typed_sql/test/customer/top_customers.ex")
     end
 
-    test "refuses a query without returns" do
-      assert_raise Mix.Error, ~r/query :top_customers has no `returns`/, fn ->
-        Gen.Returns.generate(project(@typed_sql_resource), Customer, :top_customers)
+    test "takes the module from --returns when the query has none" do
+      igniter =
+        @queries_resource
+        |> project()
+        |> Igniter.compose_task("ash_typed_sql.gen.returns", [
+          "AshTypedSql.Test.Customer",
+          "top_customers",
+          "--returns",
+          "AshTypedSql.Test.Chosen"
+        ])
+
+      assert content(igniter, @resource_path) =~ "returns(AshTypedSql.Test.Chosen)"
+      assert_creates(igniter, "lib/ash_typed_sql/test/chosen.ex")
+    end
+
+    test "refuses a query without a snapshot and names mix ash.codegen" do
+      assert_raise Mix.Error, ~r/has no snapshot at .*Run `mix ash.codegen`/, fn ->
+        Gen.Returns.generate(project(@queries_resource), Customer, :unsnapshotted)
       end
     end
 
     test "refuses a query the resource does not have" do
       assert_raise Mix.Error, ~r/has no query named :nope/, fn ->
-        Gen.Returns.generate(project(@typed_sql_resource), Customer, :nope)
+        Gen.Returns.generate(project(@queries_resource), Customer, :nope)
       end
     end
   end

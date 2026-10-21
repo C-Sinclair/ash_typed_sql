@@ -1,8 +1,8 @@
 # Generators
 
-AshTypedSql ships three Igniter tasks that edit a resource and write the snapshot it compiles from. Each task describes its SQL or table against the resource's repo database with the same functions `mix ash.codegen` calls. When Postgres refuses the statement, or the table does not exist, the task fails with the codegen error and changes nothing.
+AshTypedSql ships three Igniter tasks that edit a resource and the files it compiles from. `gen.query` and `gen.table` describe their SQL or table against the resource's repo database with the same functions `mix ash.codegen` calls. When Postgres refuses the statement, or the table does not exist, the task fails with the codegen error and changes nothing.
 
-The resource must already compile and name its repo in the `postgres` section. Igniter shows the diff and asks before writing.
+`gen.query` and `gen.table` need a resource that compiles and names its repo in the `postgres` section. `gen.returns` reads only the resource's source and the snapshot. Igniter shows the diff and asks before writing.
 
 ## Add a query
 
@@ -40,7 +40,13 @@ A written `returns` module has one `field` per result column, typed from the sna
 mix ash_typed_sql.gen.returns MyApp.Accounts.Customer top_customers
 ```
 
-The task describes the query again, writes its snapshot, and replaces the `typed_struct` block of the query's `returns` module. The rest of the module is kept. The module is created when it does not exist yet. A query without `returns` is refused. Run it after changing the query's result columns, when compilation reports that the struct no longer matches.
+The task writes the query's `returns` module from the query's snapshot. It reads the `query` from the resource's source rather than compiling the resource, so it runs while compilation fails because the module is missing. It does not describe the query. When the snapshot is missing, the task stops and asks you to run `mix ash.codegen`.
+
+The module is the query's `returns` value. A query without `returns` gets one: the `--returns` module when given, otherwise `<Resource>.<QueryName>`, such as `MyApp.Accounts.Customer.TopCustomers`. An existing module keeps everything except its `typed_struct` block, which the task replaces. Run `mix ash.codegen` and then this task after changing the query's result columns, when compilation reports that the struct no longer matches.
+
+| Option | Effect |
+|---|---|
+| `--returns MyApp.Accounts.TopCustomer` | The module to write and add when the query has no `returns`. |
 
 ## Add a table
 

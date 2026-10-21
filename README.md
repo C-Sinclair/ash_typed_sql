@@ -89,7 +89,7 @@ mix ash_typed_sql.gen.returns MyApp.Accounts.Customer top_customers
 mix ash_typed_sql.gen.table MyApp.Shelf.Book books --schema shelf --relationships
 ```
 
-`gen.query` adds the `query` with one typed `argument` per parameter and, with `--returns`, writes the struct when it does not exist. `gen.returns` rewrites a query's `returns` struct from a fresh snapshot. `gen.table` adds `typed_table`. The [Generators guide](guides/generators.md) lists every option.
+`gen.query` adds the `query` with one typed `argument` per parameter and, with `--returns`, writes the struct when it does not exist. `gen.returns` writes or rewrites a query's `returns` struct from its snapshot. `gen.table` adds `typed_table`. The [Generators guide](guides/generators.md) lists every option.
 
 ## How it works
 
