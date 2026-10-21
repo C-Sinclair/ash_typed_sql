@@ -1,0 +1,81 @@
+# DD-006 — Updating a `typed_table` resource
+
+**Status:** draft
+**Date:** 2026-10-21
+**Decisions:** [ADR-003](../decisions/ADR-003-describe-at-codegen-compile-from-snapshots.md), [ADR-014](../decisions/ADR-014-typed-table-describes-and-never-migrates.md), [ADR-015](../decisions/ADR-015-belongs-to-destinations-come-from-references.md)
+**Lands in:** `Mix.Tasks.AshTypedSql.Update.Table`, `AshTypedSql.Generator`, `AshTypedSql.Codegen.Table`
+
+## What this is
+
+`mix ash_typed_sql.update.table MyApp.Shelf.Book` brings an existing `typed_table` resource up to date after its table changes. The task describes the table again with `AshTypedSql.Codegen.Table.snapshot/3`, compares the result with the committed snapshot, writes the new snapshot, and edits the options of the `typed_table` entity that the change requires. `mix ash_typed_sql.gen.table` keeps refusing a resource that already has `typed_table`.
+
+## What this proves
+
+1. A column added, dropped or retyped in the database changes the resource through the snapshot alone. The task edits no attribute. Test: an Igniter test that adds a column to a test table, runs the task, and finds the source unchanged apart from the snapshot.
+2. A new single-column foreign key on a `relationships? true` resource gets a `references` entry, so the resource compiles after the task. Test: an Igniter test with a new foreign key, then a compile of the result.
+3. A new column of an unmapped Postgres type gets a `type_overrides` entry for the user to fill in, and the task reports it. Test: an Igniter test with a `tsvector` column.
+4. The task reports every hand-written attribute or relationship whose column changed, and rewrites none of them. Test: an Igniter test with a hand-written attribute on a retyped column.
+
+## Who uses it
+
+The developer whose tables come from migrations outside this library. After a migration lands, they run `mix ash_typed_sql.update.table MyApp.Shelf.Book`, read the diff and the report, and accept or decline. A reviewer reads the snapshot diff under `priv/typed_sql/snapshots/tables/<schema>/<table>.json` and the `typed_table` line together in one change.
+
+## Non-goals
+
+- Editing hand-written `attributes`, `relationships`, `identities` or `actions`. The task reports them and leaves them alone.
+- Renaming. A renamed column is a dropped column and an added one, as in [DD-005](DD-005-tables.md).
+- Changing `table` or `schema`. Pointing the resource at another table is a new `gen.table` on a fresh resource.
+- Updating several resources in one run. `mix ash.codegen` already rewrites every table snapshot.
+- Writing migrations ([ADR-014](../decisions/ADR-014-typed-table-describes-and-never-migrates.md)).
+
+## Postgres constraints
+
+The task reads the catalog through `AshTypedSql.Codegen.Table.snapshot/3` and adds no query of its own. The constraints in [DD-005](DD-005-tables.md) apply unchanged.
+
+## What gets generated
+
+At task time, through Igniter:
+
+- the table snapshot, rewritten from the database,
+- on the `typed_table` entity only: a `references` entry per new foreign key target when `relationships? true`, and a `type_overrides` entry per new unmapped type, holding a placeholder value the user must replace,
+- a report printed before Igniter's diff, listing columns added, dropped and retyped, foreign keys added and dropped, identities added and dropped, and each hand-written attribute or relationship that names a changed column.
+
+Attributes, identities and `belongs_to` relationships still come from the snapshot at compile time through `AshTypedSql.Transformers.GenerateTable`. The task writes none of them into source.
+
+The task refuses:
+
+- a resource without `typed_table`, naming `mix ash_typed_sql.gen.table`,
+- a table missing from the database, with the codegen error,
+- a resource whose `typed_table` options are not literals the task can read and rewrite, such as a `references` list built by a function call,
+- a run where the snapshot on disk does not parse. The user runs `mix ash.codegen` first.
+
+The diff is Igniter's: the snapshot change and the `typed_table` change appear together, and Igniter asks before writing. With `--dry-run`, the task prints the report and the diff and writes nothing.
+
+## Trade-offs
+
+`mix ash_typed_sql.gen.table --update` reuses the existing task and its options. It was not chosen for three reasons. `gen.table` takes the table name as a positional argument, while an update reads it from the resource, so the two modes need different arguments. A flag that inverts the task's refusal makes the refusal easy to bypass by accident. A separate task can document its own refusals and report without conditionals in `gen.table`'s moduledoc.
+
+Running `mix ash.codegen` alone already rewrites the snapshot. It does not add `references` or `type_overrides` entries, so a new foreign key or unmapped type leaves the resource failing to compile, and codegen prints no summary of what changed. The task covers those two gaps and the report.
+
+## Measurements this must produce
+
+None. The task adds no runtime path.
+
+## Staging
+
+1. Compare two table snapshots into a list of changes, as a pure function in `AshTypedSql.Generator`. Checkable by unit tests on snapshot maps.
+2. The task with the snapshot rewrite and the report only. Checkable by an Igniter test against the test database.
+3. `references` and `type_overrides` edits on `typed_table`. Checkable by the tests in **What this proves** 2 and 3.
+
+## Where it stops
+
+- A hand-written attribute that no longer matches its column compiles as it did before. The report names it, and the user edits it.
+- A dropped column that code still names fails at compile time, as in [DD-005](DD-005-tables.md).
+- A composite foreign key still produces no `belongs_to` ([ADR-015](../decisions/ADR-015-belongs-to-destinations-come-from-references.md)), so it gets no `references` entry.
+- `typed_sql` queries on the same resource are not re-described. Their snapshots change through `mix ash.codegen`.
+
+## Open risks
+
+- The `references` entry needs a destination resource, and the task can only guess it from the referenced table name. Closing it means searching the project's resources for a `typed_table` or `postgres` `table` that matches, and asking when there are zero or several matches.
+- A placeholder in `type_overrides` makes the resource fail to compile until the user fills it in. That may be the right signal, or the task may need to refuse instead. Deciding needs one real schema with an unmapped type.
+- Igniter's rewrite of the `typed_table` call may reformat options the user wrote across several lines. Closing it needs a test on a multi-line `typed_table` before stage 3 lands.

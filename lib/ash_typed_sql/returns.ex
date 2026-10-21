@@ -10,7 +10,7 @@ defmodule AshTypedSql.Returns do
 
   @doc "Checks that a `returns` module exists, is an `Ash.TypedStruct`, and is not combined with `as`."
   @spec check_declared(module(), AshTypedSql.Query.t()) ::
-          :ok | {:missing, String.t()} | {:error, DslError.t()}
+          :ok | {:error, DslError.t()}
   def check_declared(_resource, %{returns: nil}), do: :ok
 
   def check_declared(resource, %{as: as} = query) when not is_nil(as),
@@ -22,14 +22,8 @@ defmodule AshTypedSql.Returns do
       )
 
   def check_declared(resource, %{returns: module} = query) do
-    missing? = not match?({:module, _}, Code.ensure_compiled(module))
-
     cond do
-      # `mix ash_typed_sql.gen.returns` compiles the resource before the module it writes exists.
-      missing? and Application.get_env(:ash_typed_sql, :generating_returns?, false) ->
-        {:missing, "lib/#{Macro.underscore(module)}.ex"}
-
-      missing? ->
+      not match?({:module, _}, Code.ensure_compiled(module)) ->
         error(
           resource,
           query,

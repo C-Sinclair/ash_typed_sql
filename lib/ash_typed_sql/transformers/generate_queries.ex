@@ -32,17 +32,6 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
         {{:error, error}, _} ->
           {:halt, {:error, error}}
 
-        # The module's file is an external resource, so writing it recompiles this resource with the real action.
-        {{:missing, module_path}, _} ->
-          dsl =
-            Transformer.eval(
-              dsl,
-              [path: module_path],
-              quote(do: @external_resource(unquote(module_path)))
-            )
-
-          {:cont, {:ok, placeholder(dsl, %{query | returns: nil}), enums}}
-
         {:ok, {:ok, json}} ->
           case generate_or_skip(dsl, resource, query, path, json, enums) do
             :stale -> {:cont, {:ok, dsl, enums}}

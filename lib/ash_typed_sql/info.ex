@@ -3,32 +3,41 @@ defmodule AshTypedSql.Info do
 
   use Spark.InfoGenerator, extension: AshTypedSql, sections: [:typed_sql]
 
+  @default_snapshot_dir "priv/typed_sql/snapshots"
+
+  @doc "Returns the default `snapshot_dir`."
+  @spec default_snapshot_dir() :: String.t()
+  def default_snapshot_dir, do: @default_snapshot_dir
+
   @doc "Returns the snapshot path for a query file."
   @spec snapshot_path(Ash.Resource.t() | map(), String.t()) :: String.t()
-  def snapshot_path(resource, sql_path) do
-    dir =
-      Spark.Dsl.Extension.get_opt(
-        resource,
-        [:typed_sql],
-        :snapshot_dir,
-        "priv/typed_sql/snapshots"
-      )
-
-    Path.join(dir, Path.rootname(sql_path) <> ".json")
-  end
+  def snapshot_path(resource, sql_path),
+    do: Path.join(snapshot_dir(resource), Path.rootname(sql_path) <> ".json")
 
   @doc "Returns the snapshot path of a query: next to its `.sql` file's, or `<snapshot_dir>/<resource>/<name>.json` for inline SQL."
   @spec query_snapshot_path(Ash.Resource.t() | map(), AshTypedSql.Query.t()) :: String.t()
-  def query_snapshot_path(resource, %{path: nil} = query) do
+  def query_snapshot_path(resource, query) do
     module =
       if is_atom(resource),
         do: resource,
         else: Spark.Dsl.Transformer.get_persisted(resource, :module)
 
-    snapshot_path(resource, Path.join(Macro.underscore(module), "#{query.name}.sql"))
+    query_snapshot_file(snapshot_dir(resource), module, query)
   end
 
-  def query_snapshot_path(resource, query), do: snapshot_path(resource, query.path)
+  @doc "Returns the snapshot path of a query from the resource's `snapshot_dir` and module, without reading the resource."
+  @spec query_snapshot_file(String.t(), module(), %{
+          path: String.t() | nil,
+          name: atom()
+        }) :: String.t()
+  def query_snapshot_file(snapshot_dir, module, %{path: nil, name: name}),
+    do: Path.join([snapshot_dir, Macro.underscore(module), "#{name}.json"])
+
+  def query_snapshot_file(snapshot_dir, _module, %{path: path}),
+    do: Path.join(snapshot_dir, Path.rootname(path) <> ".json")
+
+  defp snapshot_dir(resource),
+    do: Spark.Dsl.Extension.get_opt(resource, [:typed_sql], :snapshot_dir, @default_snapshot_dir)
 
   @doc "Reads a query's SQL from its `.sql` file, or returns its inline `sql`."
   @spec query_sql(Ash.Resource.t() | map(), AshTypedSql.Query.t()) ::
