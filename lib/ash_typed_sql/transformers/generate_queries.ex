@@ -24,9 +24,24 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
       path = Info.query_snapshot_path(dsl, query)
       dsl = Transformer.eval(dsl, [path: path], quote(do: @external_resource(unquote(path))))
 
-      case {check_source(resource, query), File.read(path)} do
+      checked =
+        with :ok <- check_source(resource, query),
+             do: AshTypedSql.Returns.check_declared(resource, query)
+
+      case {checked, File.read(path)} do
         {{:error, error}, _} ->
           {:halt, {:error, error}}
+
+        # The module's file is an external resource, so writing it recompiles this resource with the real action.
+        {{:missing, module_path}, _} ->
+          dsl =
+            Transformer.eval(
+              dsl,
+              [path: module_path],
+              quote(do: @external_resource(unquote(module_path)))
+            )
+
+          {:cont, {:ok, placeholder(dsl, %{query | returns: nil}), enums}}
 
         {:ok, {:ok, json}} ->
           case generate_or_skip(dsl, resource, query, path, json, enums) do
@@ -122,7 +137,9 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
     with {:ok, enums} <- define_enums(resource, snapshot, enums),
          :ok <- check_preparations(resource, query),
          :ok <- check_get(resource, query),
-         {:ok, arguments} <- match_arguments(dsl, resource, query, snapshot, record_params) do
+         {:ok, arguments} <- match_arguments(dsl, resource, query, snapshot, record_params),
+         :ok <-
+           AshTypedSql.Returns.check(resource, query, snapshot, &ash_type(resource, query, &1)) do
       type = query.as || :action
 
       action =
@@ -174,7 +191,7 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
 
     options =
       case type do
-        :action -> [returns: :term, run: {AshTypedSql.Run, query: query.name}]
+        :action -> returns(query, query.returns || :term)
         :read -> [manual: {AshTypedSql.ManualRead, query: query.name}]
         _ -> [accept: [], manual: {AshTypedSql.ManualWrite, query: query.name}]
       end
@@ -294,10 +311,12 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
     do: Info.query_sql(dsl, query) != {:ok, snapshot["sql"]}
 
   defp action_options(resource, %{as: nil} = query, snapshot, ash_type) do
-    row = Module.concat(resource, Macro.camelize("#{query.name}_row"))
-    define_row(row, query, snapshot, ash_type)
-    returns = if query.get?, do: [returns: row, allow_nil?: true], else: [returns: {:array, row}]
-    returns ++ [run: {AshTypedSql.Run, query: query.name}]
+    row =
+      query.returns ||
+        Module.concat(resource, Macro.camelize("#{query.name}_row"))
+        |> tap(&define_row(&1, query, snapshot, ash_type))
+
+    returns(query, row)
   end
 
   defp action_options(_resource, %{as: :read} = query, _snapshot, _ash_type),
@@ -305,6 +324,12 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
 
   defp action_options(_resource, query, _snapshot, _ash_type),
     do: [accept: [], manual: {AshTypedSql.ManualWrite, query: query.name}]
+
+  defp returns(%{get?: true} = query, row),
+    do: [returns: row, allow_nil?: true, run: {AshTypedSql.Run, query: query.name}]
+
+  defp returns(query, row),
+    do: [returns: {:array, row}, run: {AshTypedSql.Run, query: query.name}]
 
   @doc false
   def define_enums(resource, snapshot, defined) do
@@ -332,7 +357,7 @@ defmodule AshTypedSql.Transformers.GenerateQueries do
     fields =
       Enum.map(snapshot["columns"], fn column ->
         name = String.to_atom(column["name"])
-        not_null? = match?(%{"not_null" => true}, column["source"]) or name in query.not_null
+        not_null? = AshTypedSql.Returns.not_null?(query, column)
 
         quote do
           field(unquote(name), unquote(Macro.escape(ash_type.(column["type"]))),

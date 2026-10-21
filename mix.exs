@@ -47,7 +47,8 @@ defmodule AshTypedSql.MixProject do
         "guides/views.md",
         "guides/functions.md",
         "guides/multitenancy.md",
-        "guides/codegen-and-snapshots.md"
+        "guides/codegen-and-snapshots.md",
+        "guides/generators.md"
       ],
       skip_undefined_reference_warnings_on: ["README.md"],
       groups_for_extras: [Guides: ~r{guides/}],
@@ -63,13 +64,14 @@ defmodule AshTypedSql.MixProject do
           AshTypedSql.Run,
           AshTypedSql.ManualRead,
           AshTypedSql.ManualWrite,
-          AshTypedSql.Records
+          AshTypedSql.Records,
+          AshTypedSql.Returns
         ],
         "Typed views": [~r/^AshTypedSql\.View/],
         "Typed functions": [~r/^AshTypedSql\.Functions?/],
         Codegen: [~r/^AshTypedSql\.Codegen/, AshTypedSql.TypeMap],
         Transformers: [~r/^AshTypedSql\.Transformers/],
-        "Mix tasks": [~r/^Mix\.Tasks/]
+        "Mix tasks": [~r/^Mix\.Tasks/, AshTypedSql.Generator]
       ]
     ]
   end
