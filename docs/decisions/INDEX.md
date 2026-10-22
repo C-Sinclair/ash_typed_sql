@@ -27,6 +27,7 @@ Start from [`ADR-000-TEMPLATE.md`](ADR-000-TEMPLATE.md). Design docs live in [`.
 | [016](ADR-016-writes-check-compares-schema-and-table.md) | The writes check compares schema-qualified table names | corrects an earlier belief |
 | [017](ADR-017-missing-snapshots-generate-placeholders.md) | A missing snapshot generates placeholder attributes and actions, so the first codegen can compile | accepted |
 | [018](ADR-018-returns-names-the-row-type.md) | `returns` names the element type of a query action, and `get?` decides list or one | accepted |
+| [019](ADR-019-typed-table-derives-columns-from-a-snapshot.md) | `typed_table` derives columns from a snapshot rather than generating source | proposed |
 
 ## Documentation
 

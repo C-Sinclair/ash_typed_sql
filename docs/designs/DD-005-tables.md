@@ -2,7 +2,7 @@
 
 **Status:** built
 **Date:** 2026-10-21
-**Decisions:** [ADR-003](../decisions/ADR-003-describe-at-codegen-compile-from-snapshots.md), [ADR-014](../decisions/ADR-014-typed-table-describes-and-never-migrates.md), [ADR-015](../decisions/ADR-015-belongs-to-destinations-come-from-references.md), [ADR-016](../decisions/ADR-016-writes-check-compares-schema-and-table.md), [ADR-017](../decisions/ADR-017-missing-snapshots-generate-placeholders.md)
+**Decisions:** [ADR-003](../decisions/ADR-003-describe-at-codegen-compile-from-snapshots.md), [ADR-014](../decisions/ADR-014-typed-table-describes-and-never-migrates.md), [ADR-015](../decisions/ADR-015-belongs-to-destinations-come-from-references.md), [ADR-016](../decisions/ADR-016-writes-check-compares-schema-and-table.md), [ADR-017](../decisions/ADR-017-missing-snapshots-generate-placeholders.md), [ADR-019](../decisions/ADR-019-typed-table-derives-columns-from-a-snapshot.md)
 **Lands in:** `AshTypedSql.Table`, `AshTypedSql.Table.Info`, `AshTypedSql.Codegen.Table`, `AshTypedSql.Transformers.GenerateTable`, `Mix.Tasks.AshTypedSql.Gen.Table`
 
 ## What this is

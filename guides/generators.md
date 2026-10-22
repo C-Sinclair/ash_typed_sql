@@ -55,3 +55,5 @@ mix ash_typed_sql.gen.table MyApp.Shelf.Book books --schema shelf --relationship
 ```
 
 The task adds the `AshTypedSql.Table` extension and `typed_table "books", schema: "shelf", relationships?: true`, and writes the table's snapshot. `--schema` defaults to `public`. With `--relationships`, each referenced table needs an entry in `references` before the resource compiles. See the [Tables section of the README](../README.md#tables).
+
+Use [`mix ash_postgres.gen.resources`](https://hexdocs.pm/ash_postgres/Mix.Tasks.AshPostgres.Gen.Resources.html) instead when you want the resource written out as source and maintained by hand. That task also writes check constraints, custom indexes, `has_many` and `many_to_many` relationships, which `typed_table` does not. It offers no check that the source still matches the database. `typed_table` keeps the columns in a snapshot, so `mix ash.codegen --check` reports a changed table in CI.
