@@ -53,7 +53,7 @@ A `query` names a `.sql` file relative to `sql_dir`, or gives the statement inli
 | Caller passing hostile argument values | SQL injection | Arguments are bound parameters. SQL text is fixed at compile time. |
 | Caller of a write query without permission | data change | Ash policies on the generic action. `kind` and `writes` are available to policy checks. |
 | Caller of an `as :update` or `as :destroy` action passing a key for another row | change to a row they were not given | The primary key parameters bind to the record, not to arguments ([ADR-008](../decisions/ADR-008-bind-crud-opt-ins-to-the-record.md)). |
-| Policy with a filter check on an `as :read` action | rows the policy should hide | Nothing. A manual read does not apply `Ash.Query` filters (tested). Policy filters reach the action as query filters, so they are expected not to apply either. Unverified. |
+| Policy with a filter check on an `as :read` action | rows the policy should hide | `AshTypedSql.ManualRead` applies `query.filter`, which carries the policy filter, to the returned rows. A filter Elixir cannot evaluate matches no rows ([ADR-020](../decisions/ADR-020-as-read-applies-the-query-filter-to-returned-rows.md), tested). |
 | Developer committing a stale snapshot | wrong types at runtime | `mix ash.codegen --check` in CI. Nothing stops it locally. |
 
 ## What gets generated
@@ -111,5 +111,5 @@ Bulk writes are generic actions. Mapping them to Ash bulk actions is not designe
 
 ## Open risks
 
-- A manual read may ignore policy filters ([Threat model](#threat-model)).
+- An `as :read` action fetches every row before the filter runs, and a limit or offset does not reach the statement ([ADR-020](../decisions/ADR-020-as-read-applies-the-query-filter-to-returned-rows.md)).
 - New values reach a write statement as arguments, so attribute validations and `change_attribute/3` do not apply to them ([ADR-008](../decisions/ADR-008-bind-crud-opt-ins-to-the-record.md)).

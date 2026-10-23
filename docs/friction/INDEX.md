@@ -24,3 +24,4 @@ Start from [`FF-000-TEMPLATE.md`](FF-000-TEMPLATE.md). Naming is `FF-DDMMYY-keba
 | [FF-191026-crud-opt-in-needs-declared-attributes-typescript](FF-191026-crud-opt-in-needs-declared-attributes-typescript.md) | ours | CRUD opt-ins need declared attributes, and the writes check compares table names without schema |
 | [FF-191026-no-formatter-export](FF-191026-no-formatter-export.md) | ours | No exported formatter config, and a duplicate `connection_config/1` warns on every compile |
 | [FF-211026-igniter-test-project-formats-dsl-with-parens](FF-211026-igniter-test-project-formats-dsl-with-parens.md) | none | Igniter's test project formats DSL calls with parentheses, and a missing `returns` module blocks `gen.returns` from compiling the resource |
+| [FF-231026-manual-read-skips-policy-filters](FF-231026-manual-read-skips-policy-filters.md) | none | A manual read returns rows its policy filter should hide, and policy tests need a SAT solver |
