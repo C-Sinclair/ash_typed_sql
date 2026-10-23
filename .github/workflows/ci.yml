@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+env:
+  MIX_ENV: test
+
+jobs:
+  test:
+    name: Postgres ${{ matrix.postgres }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ["16", "17"]
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env:
+          POSTGRES_USER: postgres
+          # config/test.exs and both examples connect as postgres with an empty password
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: erlef/setup-beam@v1.20.4
+        with:
+          elixir-version: "1.19.1"
+          otp-version: "28.1"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            deps
+            _build
+            examples/simple/deps
+            examples/simple/_build
+            examples/typescript/deps
+            examples/typescript/_build
+          key: mix-${{ runner.os }}-pg${{ matrix.postgres }}-${{ hashFiles('mix.lock', 'examples/*/mix.lock') }}
+          restore-keys: mix-${{ runner.os }}-pg${{ matrix.postgres }}-
+
+      - run: mix deps.get
+      - run: mix format --check-formatted
+      - run: mix compile --warnings-as-errors
+      # test/test_helper.exs creates the database and runs the migrations itself
+      - run: mix test
+
+      - name: mix docs
+        env:
+          MIX_ENV: dev
+        run: |
+          mix deps.get
+          mix docs 2>&1 | tee docs.log
+          if grep -qi "warning" docs.log; then exit 1; fi
+
+      - name: examples/simple
+        working-directory: examples/simple
+        run: |
+          mix deps.get
+          mix ecto.create
+          mix ecto.migrate
+          mix ash.codegen --check
+          mix test
+
+      - name: examples/typescript
+        working-directory: examples/typescript
+        run: |
+          mix deps.get
+          npm --prefix assets ci
+          mix ecto.create
+          mix ecto.migrate
+          mix ash.codegen --check
+          mix test
