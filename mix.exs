@@ -87,6 +87,7 @@ defmodule AshTypedSql.MixProject do
       {:spark, "~> 2.2"},
       {:jason, "~> 1.4"},
       {:igniter, "~> 0.6", optional: true},
+      {:simple_sat, "~> 0.1", only: :test},
       {:ex_doc, "~> 0.38", only: :dev, runtime: false}
     ]
   end

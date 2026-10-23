@@ -28,6 +28,7 @@ Start from [`ADR-000-TEMPLATE.md`](ADR-000-TEMPLATE.md). Design docs live in [`.
 | [017](ADR-017-missing-snapshots-generate-placeholders.md) | A missing snapshot generates placeholder attributes and actions, so the first codegen can compile | accepted |
 | [018](ADR-018-returns-names-the-row-type.md) | `returns` names the element type of a query action, and `get?` decides list or one | accepted |
 | [019](ADR-019-typed-table-derives-columns-from-a-snapshot.md) | `typed_table` derives columns from a snapshot rather than generating source | proposed |
+| [020](ADR-020-as-read-applies-the-query-filter-to-returned-rows.md) | `as :read` applies the query filter, including policy filters, to the returned rows | proposed |
 
 ## Documentation
 

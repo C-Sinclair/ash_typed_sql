@@ -111,7 +111,7 @@ In an `as :update` or `as :destroy` query, the record's primary key binds to the
 
 The statement must return exactly one row. Zero rows is a stale record error. More than one row rolls the action back.
 
-`mix ash.codegen` and compilation both refuse an `as` that the snapshot contradicts, and name the condition that failed. `Ash.Query` filters, sorts and pagination do not apply to an `as :read` action. Use a [view](views.md) for those.
+`mix ash.codegen` and compilation both refuse an `as` that the snapshot contradicts, and name the condition that failed. An `as :read` action applies `Ash.Query` filters, including policy filters, to the rows the statement returns. A filter that Elixir cannot evaluate, such as a `fragment`, matches no rows. Sorts, limits and offsets do not apply, so the statement fetches every row it selects. Use a [view](views.md) when the filter belongs in SQL.
 
 A write inside a PL/pgSQL function call is invisible to `EXPLAIN`. A query that calls such a function is classified as `:read` unless `kind` is set by hand.
 
