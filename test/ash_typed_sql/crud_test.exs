@@ -70,15 +70,39 @@ defmodule AshTypedSql.CrudTest do
       assert %DateTime{} = a.inserted_at
     end
 
-    test "Ash.Query filters do not apply", %{customer_id: customer_id} do
+    test "Ash.Query filters apply to the returned rows", %{customer_id: customer_id} do
       first = insert_order(customer_id, "1.50")
       insert_order(customer_id, "2.50")
 
-      assert [_, _] =
+      assert [%Order{id: ^first}] =
                Order
                |> Ash.Query.for_read(:for_customer, %{customer_id: customer_id})
                |> Ash.Query.filter(id == ^first)
                |> Ash.read!()
+    end
+
+    test "a limit does not reach the statement", %{customer_id: customer_id} do
+      first = insert_order(customer_id, "1.50")
+      second = insert_order(customer_id, "2.50")
+
+      ids =
+        Order
+        |> Ash.Query.for_read(:for_customer, %{customer_id: customer_id})
+        |> Ash.Query.limit(1)
+        |> Ash.read!()
+        |> Enum.map(& &1.id)
+
+      assert ids == [first, second]
+    end
+
+    test "a fragment filter matches no rows", %{customer_id: customer_id} do
+      insert_order(customer_id, "1.50")
+
+      assert {:ok, []} =
+               Order
+               |> Ash.Query.for_read(:for_customer, %{customer_id: customer_id})
+               |> Ash.Query.filter(fragment("? > 0", total))
+               |> Ash.read()
     end
   end
 
