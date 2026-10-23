@@ -31,8 +31,12 @@ defmodule AshTypedSql.MixProject do
   defp package do
     [
       licenses: ["MIT"],
-      links: %{"GitHub" => @source_url},
-      files: ~w(lib .formatter.exs mix.exs README.md LICENSE)
+      links: %{
+        "GitHub" => @source_url,
+        "HexDocs" => "https://hexdocs.pm/ash_typed_sql",
+        "Changelog" => "#{@source_url}/blob/main/CHANGELOG.md"
+      },
+      files: ~w(lib guides .formatter.exs mix.exs README.md LICENSE CHANGELOG.md)
     ]
   end
 
@@ -42,6 +46,7 @@ defmodule AshTypedSql.MixProject do
       source_ref: "v#{@version}",
       extras: [
         "README.md",
+        "CHANGELOG.md",
         "guides/getting-started.md",
         "guides/queries.md",
         "guides/views.md",
