@@ -55,7 +55,7 @@ action :top_customers, {:array, MyApp.Accounts.Customer.TopCustomersRow} do
 end
 ```
 
-Each `argument` binds the next positional parameter, so the first binds `$1`. `argument` is Ash's own action argument and takes the same options, except that the type is optional and `allow_nil?` defaults to `false`. An omitted type is the type Postgres reports for the parameter. A given type must have the same Postgres storage type, so `:ci_string` or an `Ash.Type.Enum` can narrow a `text` parameter, but `:integer` cannot. `allow_nil? true` binds `nil` as SQL `NULL`. Compilation refuses a parameter without an argument, an argument without a parameter, and a type Postgres stores differently. `validate` and `prepare` inside `query` go onto the generated action ([ADR-011](docs/decisions/ADR-011-query-arguments-are-ash-arguments-mapped-by-position.md)).
+Each `argument` binds the next positional parameter, so the first binds `$1`. `argument` is Ash's own action argument and takes the same options, except that the type is optional and `allow_nil?` defaults to `false`. An omitted type is the type Postgres reports for the parameter. A given type must have the same Postgres storage type, so `:ci_string` or an `Ash.Type.Enum` can narrow a `text` parameter, but `:integer` cannot. `allow_nil? true` binds `nil` as SQL `NULL`. Compilation refuses a parameter without an argument, an argument without a parameter, and a type Postgres stores differently. `validate` and `prepare` inside `query` go onto the generated action ([ADR-011](https://github.com/C-Sinclair/ash_typed_sql/blob/main/docs/decisions/ADR-011-query-arguments-are-ash-arguments-mapped-by-position.md)).
 
 `TopCustomersRow` is an `Ash.TypedStruct` with `id: :uuid`, `name: :string` and `lifetime_value: :decimal`. Each field's `allow_nil?` comes from the column's `NOT NULL` constraint where Postgres can trace the column back to a table. Computed columns such as `sum(...)` are nullable unless you say otherwise.
 
@@ -77,7 +77,7 @@ end
 
 `get? true` makes the action return one `TopCustomersRow` or `nil` instead of a list. A query that returns more than one row fails with `Ash.Error.Invalid.MultipleResults`. On an `as :read` query, `get? true` sets the read action's `get?`.
 
-`returns MyApp.Accounts.TopCustomer` names your own `Ash.TypedStruct` as the row type instead of `TopCustomersRow`. The action returns a list of it, or one with `get? true`. Compilation checks the struct's fields against the result columns: same names, same Postgres storage types, and `allow_nil?: false` only on a column that is never null. `returns` cannot be combined with `as` ([ADR-018](docs/decisions/ADR-018-returns-names-the-row-type.md)).
+`returns MyApp.Accounts.TopCustomer` names your own `Ash.TypedStruct` as the row type instead of `TopCustomersRow`. The action returns a list of it, or one with `get? true`. Compilation checks the struct's fields against the result columns: same names, same Postgres storage types, and `allow_nil?: false` only on a column that is never null. `returns` cannot be combined with `as` ([ADR-018](https://github.com/C-Sinclair/ash_typed_sql/blob/main/docs/decisions/ADR-018-returns-names-the-row-type.md)).
 
 ## Generators
 
@@ -101,7 +101,7 @@ mix ash_typed_sql.gen.table MyApp.Shelf.Book books --schema shelf --relationship
 
 `mix ash.codegen --check` fails when a `.sql` file or the database schema has drifted from its snapshot.
 
-`mix ash.codegen` compiles the project before it writes any snapshot. A resource whose snapshot is missing compiles with a warning. It gets `:term` placeholder attributes for its relationships' source attributes and its view `primary_key`, and placeholder actions for its queries and view read, so relationships and code interfaces compile on the first run. A placeholder action returns an error until codegen has written the snapshot and the project is recompiled ([ADR-017](docs/decisions/ADR-017-missing-snapshots-generate-placeholders.md)).
+`mix ash.codegen` compiles the project before it writes any snapshot. A resource whose snapshot is missing compiles with a warning. It gets `:term` placeholder attributes for its relationships' source attributes and its view `primary_key`, and placeholder actions for its queries and view read, so relationships and code interfaces compile on the first run. A placeholder action returns an error until codegen has written the snapshot and the project is recompiled ([ADR-017](https://github.com/C-Sinclair/ash_typed_sql/blob/main/docs/decisions/ADR-017-missing-snapshots-generate-placeholders.md)).
 
 When Postgres refuses a statement, `mix ash.codegen` names the file, line and column it pointed at, followed by the Postgres message:
 
@@ -261,7 +261,7 @@ end
 
 `mix ash.codegen` reads the table's columns, unique indexes and foreign keys from `pg_attribute`, `pg_index` and `pg_constraint`, and writes `priv/typed_sql/snapshots/tables/<schema>/<table>.json`. It never writes a migration for the table. Compilation generates one attribute per column, typed through `AshTypedSql.TypeMap`, with `allow_nil?` from `NOT NULL` and `generated?` for a column with a default. It also sets the primary key, an identity per plain unique index, and `postgres` `table`, `schema` and `migrate? false`. An attribute you declare yourself replaces the generated one. No actions are generated.
 
-`schema "shelf"` describes a table outside `public`. `relationships? true` adds a `belongs_to` for each single-column foreign key on a column ending in `_id`, named without the suffix, over the generated attribute. `references` names the resource behind each referenced table, and a foreign key into an unmapped table is a compile error ([ADR-015](docs/decisions/ADR-015-belongs-to-destinations-come-from-references.md)). See [DD-005](docs/designs/DD-005-tables.md).
+`schema "shelf"` describes a table outside `public`. `relationships? true` adds a `belongs_to` for each single-column foreign key on a column ending in `_id`, named without the suffix, over the generated attribute. `references` names the resource behind each referenced table, and a foreign key into an unmapped table is a compile error ([ADR-015](https://github.com/C-Sinclair/ash_typed_sql/blob/main/docs/decisions/ADR-015-belongs-to-destinations-come-from-references.md)). See [DD-005](https://github.com/C-Sinclair/ash_typed_sql/blob/main/docs/designs/DD-005-tables.md).
 
 ## Functions
 
@@ -349,7 +349,7 @@ Or run `mix igniter.install ash_typed_sql`. The guides are on [hexdocs](https://
 
 ## Design
 
-Design docs and decision records live in [`docs/`](docs/designs/INDEX.md).
+Design docs and decision records live in [`docs/`](https://github.com/C-Sinclair/ash_typed_sql/blob/main/docs/designs/INDEX.md).
 
 ## Code interfaces
 
@@ -370,11 +370,11 @@ end
 Library.Loan.lend_book!(book_id, "ada", ~D[2026-11-01])
 ```
 
-The functions go on the resource, not the domain, because a resource extension cannot add `define` entries to its domain ([ADR-013](docs/decisions/ADR-013-define-interface-on-the-resource.md)). An interface you define yourself under the same name is kept.
+The functions go on the resource, not the domain, because a resource extension cannot add `define` entries to its domain ([ADR-013](https://github.com/C-Sinclair/ash_typed_sql/blob/main/docs/decisions/ADR-013-define-interface-on-the-resource.md)). An interface you define yourself under the same name is kept.
 
 ## Multitenancy
 
-AshTypedSql runs the SQL in your files as written, so Ash's tenant never reaches it. Every generated read, create, update and destroy action sets `multitenancy :bypass`, which covers `as` queries and `typed_view` reads. Generic query actions ignore the tenant too. A query that must be tenant-scoped takes the tenant as an `argument` and filters on it in SQL ([ADR-012](docs/decisions/ADR-012-typed-sql-actions-bypass-multitenancy.md)).
+AshTypedSql runs the SQL in your files as written, so Ash's tenant never reaches it. Every generated read, create, update and destroy action sets `multitenancy :bypass`, which covers `as` queries and `typed_view` reads. Generic query actions ignore the tenant too. A query that must be tenant-scoped takes the tenant as an `argument` and filters on it in SQL ([ADR-012](https://github.com/C-Sinclair/ash_typed_sql/blob/main/docs/decisions/ADR-012-typed-sql-actions-bypass-multitenancy.md)).
 
 ## Scope
 
