@@ -9,7 +9,7 @@
 
 When a `typed_table`, `typed_view` or `query` snapshot is missing, compilation warns and generates placeholders in place of what the snapshot would give:
 
-- an attribute of type `:term` for each relationship's source attribute on the resource, and for each `typed_view` `primary_key` column, which is the primary key,
+- an attribute of type `:term` for each relationship's source attribute on the resource, for each `typed_view` `primary_key` column, which is the primary key, and for a `typed_view` `tenant_attribute`, which `ash_postgres` reads at compile time,
 - for a `typed_view`, its primary `read` action, with declared arguments typed `:term`, and its `refresh` action and code interfaces,
 - for a `query`, an action of its type (`as`, or a generic action returning `:term`) with the declared arguments typed `:term`, and its code interface,
 - for a `typed_table`, `require_primary_key? false`, since the key is unknown,

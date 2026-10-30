@@ -183,7 +183,7 @@ From that file, `mix ash.codegen` generates:
 - a migration with `CREATE VIEW customer_stats AS ...`, and a new migration whenever the file changes
 - one attribute per column, typed by describing the `SELECT`
 - `postgres do table "customer_stats"; migrate? false end`, so the AshPostgres migration generator leaves the view alone
-- a primary `:read` action, unless the resource declares a read action
+- a primary `:read` action, unless the resource declares an action named `:read`
 
 The `belongs_to` needs `define_attribute? false`, because `customer_id` is already an attribute.
 
@@ -375,6 +375,17 @@ The functions go on the resource, not the domain, because a resource extension c
 ## Multitenancy
 
 AshTypedSql runs the SQL in your files as written, so Ash's tenant never reaches it. Every generated read, create, update and destroy action sets `multitenancy :bypass`, which covers `as` queries and `typed_view` reads. Generic query actions ignore the tenant too. A query that must be tenant-scoped takes the tenant as an `argument` and filters on it in SQL ([ADR-012](https://github.com/C-Sinclair/ash_typed_sql/blob/main/docs/decisions/ADR-012-typed-sql-actions-bypass-multitenancy.md)).
+
+A view read is the exception, because `ash_postgres` builds that query. `tenant_attribute` names the view column that holds the tenant:
+
+```elixir
+typed_view "views/net_exchanges.sql" do
+  primary_key [:id]
+  tenant_attribute :organisation_id
+end
+```
+
+`tenant_attribute` sets the resource's `multitenancy` `strategy :attribute` and `attribute :organisation_id` ([ADR-021](https://github.com/C-Sinclair/ash_typed_sql/blob/main/docs/decisions/ADR-021-tenant-attribute-sets-attribute-multitenancy.md)). The generated `:read` filters by tenant, and a read without one raises `Ash.Error.Invalid.TenantRequired`. `mix ash.codegen` fails unless Postgres traces `organisation_id` to a table column. A materialized view also gets an index on the tenant column. A parameterized view cannot set `tenant_attribute`.
 
 ## Scope
 

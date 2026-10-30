@@ -5,11 +5,11 @@ defmodule AshTypedSql.Placeholder do
 
   alias Spark.Dsl.Transformer
 
-  @doc "Adds a `:term` attribute for each of `names` and each relationship's source attribute the resource does not have yet."
-  def attributes(dsl, primary_key \\ []) do
+  @doc "Adds a `:term` attribute for each of `primary_key`, `others` and each relationship's source attribute the resource does not have yet."
+  def attributes(dsl, primary_key \\ [], others \\ []) do
     existing = MapSet.new(Transformer.get_entities(dsl, [:attributes]), & &1.name)
 
-    (primary_key ++ relationship_sources(dsl))
+    (primary_key ++ others ++ relationship_sources(dsl))
     |> Enum.uniq()
     |> Enum.reject(&(&1 in existing))
     |> Enum.map(fn name ->

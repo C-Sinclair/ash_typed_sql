@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- `tenant_attribute` on `typed_view` sets attribute multitenancy on the resource. The generated `:read` filters by tenant instead of bypassing it. Codegen refuses a tenant column that Postgres does not trace to a table column, and a materialized view gets an index on it.
+- A `typed_view` resource gets a generated `:read` unless it declares an action named `:read`. Before, any declared read action suppressed it.
+
 ## 0.1.0
 
 First release.

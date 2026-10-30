@@ -20,7 +20,7 @@ Start from [`ADR-000-TEMPLATE.md`](ADR-000-TEMPLATE.md). Design docs live in [`.
 | [009](ADR-009-describe-sql-functions-in-a-rolled-back-transaction.md) | Read a `sql:` function from `pg_proc` inside a rolled-back transaction, and migrate it with Ecto | accepted |
 | [010](ADR-010-parameterized-views-are-functions-read-through-a-cte.md) | Read a parameterized view through a CTE named after its table | accepted |
 | [011](ADR-011-query-arguments-are-ash-arguments-mapped-by-position.md) | Query arguments are Ash arguments mapped by position | accepted |
-| [012](ADR-012-typed-sql-actions-bypass-multitenancy.md) | Generated read, create, update and destroy actions bypass multitenancy | accepted |
+| [012](ADR-012-typed-sql-actions-bypass-multitenancy.md) | Generated read, create, update and destroy actions bypass multitenancy, except the read of a `typed_view` with `tenant_attribute` | accepted |
 | [013](ADR-013-define-interface-on-the-resource.md) | `define_interface?` adds resource-level code interfaces, not domain ones | accepted |
 | [014](ADR-014-typed-table-describes-and-never-migrates.md) | `typed_table` describes an existing table, never migrates it, and generates no actions | accepted |
 | [015](ADR-015-belongs-to-destinations-come-from-references.md) | `belongs_to` destinations come from `references`, behind `relationships? true` | accepted |
@@ -29,6 +29,7 @@ Start from [`ADR-000-TEMPLATE.md`](ADR-000-TEMPLATE.md). Design docs live in [`.
 | [018](ADR-018-returns-names-the-row-type.md) | `returns` names the element type of a query action, and `get?` decides list or one | accepted |
 | [019](ADR-019-typed-table-derives-columns-from-a-snapshot.md) | `typed_table` derives columns from a snapshot rather than generating source | proposed |
 | [020](ADR-020-as-read-applies-the-query-filter-to-returned-rows.md) | `as :read` applies the query filter, including policy filters, to the returned rows | proposed |
+| [021](ADR-021-tenant-attribute-sets-attribute-multitenancy.md) | `tenant_attribute` on `typed_view` sets the resource's attribute multitenancy | accepted |
 
 ## Documentation
 

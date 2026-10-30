@@ -28,15 +28,59 @@ defmodule AshTypedSql.Transformers.GenerateView do
       |> set_new_option(:table, Path.basename(view.path, ".sql"))
       |> Transformer.set_option([:postgres], :migrate?, false)
 
-    case File.read(path) do
-      {:ok, json} ->
-        generate_or_skip(dsl, resource, view, path, json)
+    with {:ok, dsl} <- set_multitenancy(dsl, resource, view) do
+      case File.read(path) do
+        {:ok, json} ->
+          dsl
+          |> generate_or_skip(resource, view, path, json)
+          |> add_tenant_placeholder(view)
 
-      {:error, :enoent} ->
-        IO.warn("#{inspect(resource)} has no view snapshot at #{path}. Run `mix ash.codegen`.")
-        {:ok, placeholder(dsl, view)}
+        {:error, :enoent} ->
+          IO.warn("#{inspect(resource)} has no view snapshot at #{path}. Run `mix ash.codegen`.")
+          {:ok, placeholder(dsl, view)}
+      end
     end
   end
+
+  defp set_multitenancy(dsl, _resource, %{tenant_attribute: nil}), do: {:ok, dsl}
+
+  defp set_multitenancy(_dsl, resource, %{arguments: [_ | _]}) do
+    {:error,
+     DslError.exception(
+       module: resource,
+       path: [:typed_view, :tenant_attribute],
+       message:
+         "a parameterized view cannot set tenant_attribute. Take the tenant as an argument and filter on it in SQL"
+     )}
+  end
+
+  defp set_multitenancy(dsl, resource, %{tenant_attribute: tenant}) do
+    case Transformer.get_option(dsl, [:multitenancy], :attribute) do
+      declared when declared in [nil, tenant] ->
+        {:ok,
+         dsl
+         |> Transformer.set_option([:multitenancy], :strategy, :attribute)
+         |> Transformer.set_option([:multitenancy], :attribute, tenant)}
+
+      declared ->
+        {:error,
+         DslError.exception(
+           module: resource,
+           path: [:multitenancy, :attribute],
+           message:
+             "multitenancy attribute #{inspect(declared)} differs from typed_view tenant_attribute #{inspect(tenant)}. Remove the multitenancy attribute, since tenant_attribute sets it"
+         )}
+    end
+  end
+
+  # `ash_postgres` reads the multitenancy attribute at compile time, so it must exist even when a stale snapshot generated no attributes.
+  defp add_tenant_placeholder({:ok, dsl}, %{tenant_attribute: tenant}) when not is_nil(tenant),
+    do: {:ok, AshTypedSql.Placeholder.attributes(dsl, [], [tenant])}
+
+  defp add_tenant_placeholder(result, _view), do: result
+
+  defp read_multitenancy(%{tenant_attribute: nil}), do: [multitenancy: :bypass]
+  defp read_multitenancy(_view), do: []
 
   defp set_new_option(dsl, option, value) do
     if Transformer.get_option(dsl, [:postgres], option) do
@@ -63,6 +107,7 @@ defmodule AshTypedSql.Transformers.GenerateView do
 
     with :ok <- check_columns(resource, view, :primary_key, columns),
          :ok <- check_columns(resource, view, :not_null, columns),
+         :ok <- check_columns(resource, view, :tenant_attribute, columns),
          :ok <- check_schema(dsl, resource, snapshot),
          {:ok, _enums} <- GenerateQueries.define_enums(resource, snapshot, MapSet.new()),
          {:ok, arguments} <- match_arguments(resource, view, snapshot) do
@@ -70,7 +115,7 @@ defmodule AshTypedSql.Transformers.GenerateView do
         snapshot["columns"]
         |> Enum.map(&attribute(resource, view, &1))
         |> Enum.reduce(dsl, &Transformer.add_entity(&2, [:attributes], &1, type: :append))
-        |> add_read_action(resource, arguments, snapshot)
+        |> add_read_action(resource, view, arguments, snapshot)
         |> add_refresh_action(view)
         |> define_interface(view, arguments)
 
@@ -84,17 +129,9 @@ defmodule AshTypedSql.Transformers.GenerateView do
   defp placeholder(dsl, view) do
     arguments = AshTypedSql.Placeholder.arguments(view.arguments)
 
-    read =
-      Transformer.build_entity!(Ash.Resource.Dsl, [:actions], :read,
-        name: :read,
-        primary?: true,
-        arguments: arguments,
-        multitenancy: :bypass
-      )
-
     dsl
-    |> AshTypedSql.Placeholder.attributes(view.primary_key)
-    |> Transformer.add_entity([:actions], read)
+    |> AshTypedSql.Placeholder.attributes(view.primary_key, List.wrap(view.tenant_attribute))
+    |> add_read_action(view, arguments: arguments)
     |> add_refresh_action(view)
     |> define_interface(view, arguments)
   end
@@ -152,30 +189,34 @@ defmodule AshTypedSql.Transformers.GenerateView do
     do: TypeMap.to_ash(type, &GenerateQueries.enum_module(resource, &1))
 
   # A parameterized view's relation is a function, which the generated source module puts in a CTE named after the table, so the `FROM "table"` that `ash_postgres` builds reads it.
-  defp add_read_action(dsl, resource, arguments, %{"function" => _}) do
+  defp add_read_action(dsl, resource, view, arguments, %{"function" => _}) do
     names = Enum.map(arguments, & &1.name)
     source = define_source(resource, Transformer.get_option(dsl, [:postgres], :table), names)
 
-    read =
-      Transformer.build_entity!(Ash.Resource.Dsl, [:actions], :read,
-        name: :read,
-        arguments: arguments,
-        multitenancy: :bypass,
-        modify_query: {source, :modify, []}
-      )
-
-    Transformer.add_entity(dsl, [:actions], read)
+    add_read_action(dsl, view,
+      primary?: false,
+      arguments: arguments,
+      modify_query: {source, :modify, []}
+    )
   end
 
-  defp add_read_action(dsl, _resource, _arguments, _snapshot) do
-    if Enum.any?(Transformer.get_entities(dsl, [:actions]), &(&1.type == :read)) do
+  defp add_read_action(dsl, _resource, view, _arguments, _snapshot),
+    do: add_read_action(dsl, view, [])
+
+  defp add_read_action(dsl, view, opts) do
+    actions = Transformer.get_entities(dsl, [:actions])
+
+    if Enum.any?(actions, &(&1.name == :read)) do
       dsl
     else
+      primary? = not Enum.any?(actions, &(&1.type == :read and &1.primary?))
+
       read =
-        Transformer.build_entity!(Ash.Resource.Dsl, [:actions], :read,
-          name: :read,
-          primary?: true,
-          multitenancy: :bypass
+        Transformer.build_entity!(
+          Ash.Resource.Dsl,
+          [:actions],
+          :read,
+          Keyword.merge([name: :read, primary?: primary?] ++ read_multitenancy(view), opts)
         )
 
       Transformer.add_entity(dsl, [:actions], read)
@@ -254,7 +295,7 @@ defmodule AshTypedSql.Transformers.GenerateView do
   defp check_schema(_dsl, _resource, _snapshot), do: :ok
 
   defp check_columns(resource, view, option, columns) do
-    case Map.fetch!(view, option) -- columns do
+    case List.wrap(Map.fetch!(view, option)) -- columns do
       [] ->
         :ok
 
