@@ -41,7 +41,7 @@ From that file, `mix ash.codegen` and compilation produce:
 - a migration with `CREATE VIEW customer_stats AS ...`, and a new migration whenever the file changes
 - one attribute per column, typed by describing the `SELECT`
 - `postgres do table "customer_stats"; migrate? false end`, so the AshPostgres migration generator leaves the view alone
-- a primary `:read` action, unless the resource declares a read action
+- a primary `:read` action, unless the resource declares an action named `:read`
 
 The `belongs_to` needs `define_attribute? false`, because `customer_id` is already an attribute.
 
@@ -64,9 +64,10 @@ Codegen picks between the two by trying each direction of the migration against 
 
 ## Materialized views
 
-`materialized? true` generates `CREATE MATERIALIZED VIEW` instead. It also adds two things:
+`materialized? true` generates `CREATE MATERIALIZED VIEW` instead. It also adds:
 
 - a unique index named `<table>_primary_key_index` on `primary_key`
+- an index named `<table>_tenant_index` on `tenant_attribute`, when it is set
 - a `:refresh` generic action that runs `REFRESH MATERIALIZED VIEW CONCURRENTLY`
 
 ```elixir
@@ -112,6 +113,19 @@ A parameterized view has two limits:
 
 - A relationship filter, sort or aggregate into it fails, because a filter cannot pass read arguments.
 - It cannot set a `postgres` `schema`.
+
+## Multitenancy
+
+A view read ignores the tenant by default ([Multitenancy](multitenancy.md)). `tenant_attribute` names the result column that holds the tenant, and the generated `:read` then filters by it:
+
+```elixir
+typed_view "views/net_exchanges.sql" do
+  primary_key [:id]
+  tenant_attribute :organisation_id
+end
+```
+
+See [Multitenancy](multitenancy.md#a-view-with-a-tenant-column) for what it generates and checks.
 
 ## Code interfaces
 
