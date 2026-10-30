@@ -23,6 +23,11 @@ defmodule AshTypedSql.View do
         default: [],
         doc: "Result columns that are never null, for computed columns Postgres cannot prove."
       ],
+      tenant_attribute: [
+        type: :atom,
+        doc:
+          "A result column read straight from a base table's tenant column. Sets the resource's `multitenancy` `strategy :attribute` and `attribute`, and makes the generated read filter by tenant instead of bypassing it."
+      ],
       define_interface?: [
         type: :boolean,
         doc:

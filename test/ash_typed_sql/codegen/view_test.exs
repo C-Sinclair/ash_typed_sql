@@ -3,18 +3,33 @@ defmodule AshTypedSql.Codegen.ViewTest do
 
   alias AshTypedSql.Codegen.{Describe, View}
   alias AshTypedSql.Test.Repo
-  alias AshTypedSql.Test.Views.{CustomerStats, CustomerStatsSince, CustomerTiers}
+
+  alias AshTypedSql.Test.Views.{
+    CustomerStats,
+    CustomerStatsSince,
+    CustomerTiers,
+    LargeInvoices,
+    OrganisationInvoices
+  }
+
   alias AshTypedSql.View.TypedView
 
   @now ~U[2026-10-19 00:00:00Z]
 
   test "committed snapshots match what Postgres describes today, so no migration is due" do
-    files = View.files(Repo, [CustomerStats, CustomerTiers, CustomerStatsSince], @now)
+    files =
+      View.files(
+        Repo,
+        [CustomerStats, CustomerTiers, CustomerStatsSince, OrganisationInvoices, LargeInvoices],
+        @now
+      )
 
     assert Enum.map(files, &elem(&1, 0)) == [
              "test/support/typed_sql/snapshots/views/customer_stats.json",
              "test/support/typed_sql/snapshots/views/customer_tiers.json",
-             "test/support/typed_sql/snapshots/views/customer_stats_since.json"
+             "test/support/typed_sql/snapshots/views/customer_stats_since.json",
+             "test/support/typed_sql/snapshots/views/organisation_invoices.json",
+             "test/support/typed_sql/snapshots/views/large_invoices.json"
            ]
 
     for {path, contents} <- files do
@@ -259,6 +274,72 @@ defmodule AshTypedSql.Codegen.ViewTest do
                )
 
       assert result_type() == "TABLE(customer_id uuid, order_count bigint)"
+    end
+  end
+
+  describe "tenant_attribute" do
+    @tenant_view %TypedView{
+      path: "tenant_view.sql",
+      primary_key: [:id],
+      tenant_attribute: :organisation_id
+    }
+
+    setup do
+      config = AshTypedSql.Test.Schema.config()
+      {:ok, conn} = Postgrex.start_link(config)
+      {:ok, describe_conn} = Describe.connect(config)
+      Postgrex.query!(conn, "create view tenant_source as select * from invoices", [])
+
+      on_exit(fn ->
+        {:ok, cleanup} = Postgrex.start_link(config)
+        Postgrex.query!(cleanup, "drop view if exists tenant_source", [])
+        GenServer.stop(cleanup)
+      end)
+
+      on_exit(fn -> Describe.disconnect(describe_conn) end)
+      %{conn: conn, describe_conn: describe_conn}
+    end
+
+    test "codegen records a tenant column read straight from a table", context do
+      sql = "select i.id, i.organisation_id from invoices i group by i.id, i.organisation_id"
+      snapshot = View.snapshot(context.conn, context.describe_conn, sql, @tenant_view, "test")
+      assert snapshot["tenant_attribute"] == "organisation_id"
+    end
+
+    test "codegen rejects a tenant column that does not trace to a base-table column",
+         context do
+      for {sql, message} <- [
+            {"select id, organisation_id::text::uuid as organisation_id from invoices",
+             ~r/does not trace to a base-table column/},
+            {"select max(id) as id, max(organisation_id::text)::uuid as organisation_id from invoices",
+             ~r/does not trace to a base-table column/},
+            {"select id, organisation_id from invoices union all select id, organisation_id from invoices",
+             ~r/does not trace to a base-table column/},
+            {"select id, organisation_id from tenant_source",
+             ~r/comes from public.tenant_source/},
+            {"select id from invoices", ~r/is not a result column/}
+          ] do
+        assert_raise Mix.Error, message, fn ->
+          View.snapshot(context.conn, context.describe_conn, sql, @tenant_view, "test")
+        end
+      end
+    end
+
+    test "a materialized view's migration indexes the tenant column", context do
+      view = %{@tenant_view | materialized?: true}
+      sql = "select id, organisation_id from invoices"
+      snapshot = View.snapshot(context.conn, context.describe_conn, sql, view, "test")
+      {up, _down} = View.migration(context.conn, {nil, "tenant_matview"}, nil, snapshot, "test")
+
+      assert ~s[create index "tenant_matview_tenant_index" on "tenant_matview" ("organisation_id")] in up
+    end
+
+    test "a plain view's migration adds no index", context do
+      sql = "select id, organisation_id from invoices"
+      snapshot = View.snapshot(context.conn, context.describe_conn, sql, @tenant_view, "test")
+      {up, _down} = View.migration(context.conn, {nil, "tenant_plain"}, nil, snapshot, "test")
+
+      assert [~s(create view "tenant_plain" as) <> _] = up
     end
   end
 end

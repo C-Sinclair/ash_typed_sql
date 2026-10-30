@@ -164,4 +164,66 @@ defmodule AshTypedSql.FirstCodegenTest do
 
     assert Module.concat(AshTypedSql.FirstCodegenTest.Expressions, Half).name() == :half
   end
+
+  defp define_tenant_view(prefix, snapshot_dir) do
+    {{:module, resource, _, _}, _} =
+      Code.eval_string("""
+      defmodule #{prefix}.Invoices do
+        use Ash.Resource,
+          domain: nil,
+          validate_domain_inclusion?: false,
+          data_layer: AshPostgres.DataLayer,
+          extensions: [AshTypedSql.View]
+
+        typed_view "views/organisation_invoices.sql" do
+          sql_dir "test/support/typed_sql"
+          snapshot_dir #{inspect(snapshot_dir)}
+          primary_key [:id]
+          tenant_attribute :organisation_id
+        end
+
+        postgres do
+          repo AshTypedSql.Test.Repo
+        end
+
+        actions do
+          read :across_organisations do
+            multitenancy :bypass_all
+          end
+        end
+      end
+      """)
+
+    resource
+  end
+
+  test "a view with tenant_attribute compiles without a snapshot, and codegen writes it", %{
+    tmp_dir: tmp_dir
+  } do
+    warnings =
+      capture_io(:stderr, fn ->
+        send(
+          self(),
+          {:resource, define_tenant_view("AshTypedSql.FirstCodegenTest.TenantBefore", tmp_dir)}
+        )
+      end)
+
+    assert_received {:resource, before}
+    assert warnings =~ "has no view snapshot"
+    assert Ash.Resource.Info.multitenancy_attribute(before) == :organisation_id
+    assert Ash.Resource.Info.attribute(before, :organisation_id).type == Ash.Type.Term
+    assert %{primary?: true, multitenancy: :enforce} = Ash.Resource.Info.action(before, :read)
+
+    for {path, contents} <-
+          Codegen.View.files(AshTypedSql.Test.Repo, [before], DateTime.utc_now()),
+        String.starts_with?(path, tmp_dir) do
+      File.mkdir_p!(Path.dirname(path))
+      File.write!(path, contents)
+    end
+
+    resource = define_tenant_view("AshTypedSql.FirstCodegenTest.TenantAfter", tmp_dir)
+
+    assert Ash.Resource.Info.attribute(resource, :organisation_id).type == Ash.Type.UUID
+    assert Ash.Resource.Info.multitenancy_attribute(resource) == :organisation_id
+  end
 end

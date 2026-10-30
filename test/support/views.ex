@@ -7,6 +7,8 @@ defmodule AshTypedSql.Test.Views do
     resource(AshTypedSql.Test.Views.CustomerStats)
     resource(AshTypedSql.Test.Views.CustomerTiers)
     resource(AshTypedSql.Test.Views.CustomerStatsSince)
+    resource(AshTypedSql.Test.Views.OrganisationInvoices)
+    resource(AshTypedSql.Test.Views.LargeInvoices)
   end
 end
 
@@ -112,5 +114,50 @@ defmodule AshTypedSql.Test.Views.CustomerStatsSince do
       source_attribute(:customer_id)
       define_attribute?(false)
     end
+  end
+end
+
+defmodule AshTypedSql.Test.Views.OrganisationInvoices do
+  @moduledoc false
+  use Ash.Resource,
+    domain: AshTypedSql.Test.Views,
+    data_layer: AshPostgres.DataLayer,
+    extensions: [AshTypedSql.View]
+
+  typed_view "views/organisation_invoices.sql" do
+    sql_dir "test/support/typed_sql"
+    snapshot_dir "test/support/typed_sql/snapshots"
+    primary_key [:id]
+    tenant_attribute :organisation_id
+  end
+
+  postgres do
+    repo(AshTypedSql.Test.Repo)
+  end
+
+  actions do
+    read :across_organisations do
+      multitenancy(:bypass_all)
+    end
+  end
+end
+
+defmodule AshTypedSql.Test.Views.LargeInvoices do
+  @moduledoc false
+  use Ash.Resource,
+    domain: AshTypedSql.Test.Views,
+    data_layer: AshPostgres.DataLayer,
+    extensions: [AshTypedSql.View]
+
+  typed_view "views/large_invoices.sql" do
+    sql_dir "test/support/typed_sql"
+    snapshot_dir "test/support/typed_sql/snapshots"
+    primary_key [:id]
+    materialized? true
+    tenant_attribute :organisation_id
+  end
+
+  postgres do
+    repo(AshTypedSql.Test.Repo)
   end
 end

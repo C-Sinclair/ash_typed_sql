@@ -89,13 +89,15 @@ defmodule AshTypedSql.Codegen.View do
       Mix.raise("#{label}: #{message}")
     end
 
-    snapshot = %{
-      "sql" => sql,
-      "materialized" => view.materialized?,
-      "primary_key" => Enum.map(view.primary_key, &Atom.to_string/1),
-      "params" => Enum.map(described.param_oids, &Query.type(conn, &1, view, label)),
-      "columns" => Enum.map(described.columns, &Query.column(conn, &1, view, label))
-    }
+    snapshot =
+      %{
+        "sql" => sql,
+        "materialized" => view.materialized?,
+        "primary_key" => Enum.map(view.primary_key, &Atom.to_string/1),
+        "params" => Enum.map(described.param_oids, &Query.type(conn, &1, view, label)),
+        "columns" => Enum.map(described.columns, &Query.column(conn, &1, view, label))
+      }
+      |> put_tenant_attribute(conn, view, described, label)
 
     cond do
       described.param_oids == [] ->
@@ -106,6 +108,45 @@ defmodule AshTypedSql.Codegen.View do
 
       true ->
         Map.put(snapshot, "function", function(conn, names, described))
+    end
+  end
+
+  defp put_tenant_attribute(snapshot, _conn, %{tenant_attribute: nil}, _described, _label),
+    do: snapshot
+
+  defp put_tenant_attribute(snapshot, conn, view, described, label) do
+    name = Atom.to_string(view.tenant_attribute)
+
+    case Enum.find(described.columns, &(&1.name == name)) do
+      nil ->
+        Mix.raise(
+          "#{label}: tenant_attribute #{inspect(view.tenant_attribute)} is not a result column"
+        )
+
+      %{table_oid: 0} ->
+        Mix.raise(
+          "#{label}: tenant_attribute #{inspect(view.tenant_attribute)} does not trace to a base-table column. Postgres reports it as computed, which covers expressions, casts, aggregates, function calls and set operations. Select the tenant column straight from its table"
+        )
+
+      column ->
+        check_base_table(conn, column, view, label)
+        Map.put(snapshot, "tenant_attribute", name)
+    end
+  end
+
+  # Postgres traces a column through subqueries but stops at a view, so a column read from another view is not known to come from a table.
+  defp check_base_table(conn, column, view, label) do
+    %{rows: [[relation, relkind]]} =
+      Postgrex.query!(
+        conn,
+        "select format('%I.%I', n.nspname, c.relname), c.relkind::text from pg_class c join pg_namespace n on n.oid = c.relnamespace where c.oid = $1",
+        [column.table_oid]
+      )
+
+    if relkind not in ["r", "p"] do
+      Mix.raise(
+        "#{label}: tenant_attribute #{inspect(view.tenant_attribute)} comes from #{relation}, which is not a table. Select the tenant column straight from its table"
+      )
     end
   end
 
@@ -138,7 +179,13 @@ defmodule AshTypedSql.Codegen.View do
   @definition ["sql", "materialized", "primary_key", "function"]
 
   defp migrate?(nil, _new), do: true
-  defp migrate?(old, new), do: Map.take(old, @definition) != Map.take(new, @definition)
+  defp migrate?(old, new), do: definition(old) != definition(new)
+
+  # Only a materialized view indexes its tenant column, so a plain view whose tenant_attribute changes needs no migration.
+  defp definition(%{"materialized" => true} = snapshot),
+    do: Map.take(snapshot, ["tenant_attribute" | @definition])
+
+  defp definition(snapshot), do: Map.take(snapshot, @definition)
 
   @doc """
   Returns the `{up, down}` statements that move the database from the `old` view snapshot to `new`.
@@ -207,8 +254,14 @@ defmodule AshTypedSql.Codegen.View do
     [
       create_view(relation, true, view["sql"]),
       ~s[create unique index "#{table}_primary_key_index" on #{relation} (#{columns})]
+      | tenant_index(relation, table, view)
     ]
   end
+
+  defp tenant_index(relation, table, %{"tenant_attribute" => tenant}),
+    do: [~s[create index "#{table}_tenant_index" on #{relation} ("#{tenant}")]]
+
+  defp tenant_index(_relation, _table, _view), do: []
 
   defp create_view(relation, false, sql), do: "create view #{relation} as\n#{sql}"
   defp create_view(relation, true, sql), do: "create materialized view #{relation} as\n#{sql}"

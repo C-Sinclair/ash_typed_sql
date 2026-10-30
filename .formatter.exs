@@ -36,6 +36,7 @@ spark_locals_without_parens = [
   snapshot_dir: 1,
   sql: 1,
   sql_dir: 1,
+  tenant_attribute: 1,
   type: 1,
   type_overrides: 1,
   typed_table: 1,

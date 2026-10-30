@@ -1,0 +1,47 @@
+{
+  "columns": [
+    {
+      "name": "id",
+      "source": {
+        "column": "id",
+        "not_null": true,
+        "schema": "public",
+        "table": "invoices"
+      },
+      "type": {
+        "type": "integer"
+      }
+    },
+    {
+      "name": "organisation_id",
+      "source": {
+        "column": "organisation_id",
+        "not_null": true,
+        "schema": "public",
+        "table": "invoices"
+      },
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "total",
+      "source": {
+        "column": "total",
+        "not_null": true,
+        "schema": "public",
+        "table": "invoices"
+      },
+      "type": {
+        "type": "decimal"
+      }
+    }
+  ],
+  "materialized": false,
+  "params": [],
+  "primary_key": [
+    "id"
+  ],
+  "sql": "select i.id, i.organisation_id, i.total\nfrom invoices i",
+  "tenant_attribute": "organisation_id"
+}
