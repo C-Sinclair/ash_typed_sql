@@ -229,6 +229,25 @@ Filters, sorts, pagination and relationship loads work. A relationship into a pa
 
 A `WITH` statement inside a query file needs no special support. Describe types it like any other statement, and `EXPLAIN` lists the writes made inside its CTEs.
 
+### Reading a view as of a point in time
+
+`Ash.Query.as_of/2` works on a view resource without a temporal attribute. Ash replaces `now()` in a read's filter with the query's `as_of` on any resource, so a read action that filters on `now()` returns each row as it stood at that instant. A view over an append-only observations table can expose `valid_from` and `valid_to` with `lead()` over a window, and merge partial observations with a running aggregate:
+
+```elixir
+read :current do
+  filter expr(valid_from <= now() and (is_nil(valid_to) or valid_to > now()))
+end
+```
+
+```elixir
+MyApp.Legacy.LegacyRecords
+|> Ash.Query.for_read(:current)
+|> Ash.Query.as_of(~U[2026-02-15 00:00:00Z])
+|> Ash.read!()
+```
+
+Relationship loads made by the same read see the same `as_of`. A parameterized view does not, because its parameters are read arguments. See [Views](guides/views.md#reading-a-view-as-of-a-point-in-time) for the full example.
+
 ## Tables
 
 A CRUD opt-in checks its columns against the resource's attributes. `typed_table` generates those attributes from a table that already exists, whether an `ash_postgres` migration or a hand-written one created it.

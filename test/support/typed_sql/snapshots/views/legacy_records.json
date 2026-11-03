@@ -1,0 +1,75 @@
+{
+  "columns": [
+    {
+      "name": "legacy_app_id",
+      "source": {
+        "column": "legacy_app_id",
+        "not_null": true,
+        "schema": "public",
+        "table": "entity_observations"
+      },
+      "type": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "entity",
+      "source": {
+        "column": "entity",
+        "not_null": true,
+        "schema": "public",
+        "table": "entity_observations"
+      },
+      "type": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "legacy_id",
+      "source": {
+        "column": "legacy_id",
+        "not_null": true,
+        "schema": "public",
+        "table": "entity_observations"
+      },
+      "type": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "fields",
+      "source": null,
+      "type": {
+        "type": "map"
+      }
+    },
+    {
+      "name": "valid_from",
+      "source": {
+        "column": "observed_at",
+        "not_null": true,
+        "schema": "public",
+        "table": "entity_observations"
+      },
+      "type": {
+        "type": "utc_datetime_usec"
+      }
+    },
+    {
+      "name": "valid_to",
+      "source": null,
+      "type": {
+        "type": "utc_datetime_usec"
+      }
+    }
+  ],
+  "materialized": false,
+  "params": [],
+  "primary_key": [
+    "legacy_app_id",
+    "entity",
+    "legacy_id",
+    "valid_from"
+  ],
+  "sql": "select o.legacy_app_id, o.entity, o.legacy_id,\n       jsonb_merge_agg(o.fields) over w as fields,\n       o.observed_at as valid_from,\n       lead(o.observed_at) over w as valid_to\nfrom entity_observations o\nwindow w as (partition by o.legacy_app_id, o.entity, o.legacy_id order by o.observed_at\n             rows between unbounded preceding and current row)"
+}

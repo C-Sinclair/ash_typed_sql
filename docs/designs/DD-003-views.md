@@ -15,6 +15,7 @@ A `.sql` file holding a `SELECT` becomes a Postgres view and a resource backed b
 2. A relationship filter through a view resource runs as one SQL query.
 3. Changing a view's columns produces a migration that applies cleanly, including when other views depend on it.
 4. A parameterized view takes its parameters as read action arguments, and a filter on it runs as one SQL query that Postgres inlines.
+5. A read action on a plain view that filters on `now()` answers at the query's `as_of`, and relationship loads made by the same read answer at the same instant.
 
 ## Who uses it
 
@@ -26,7 +27,7 @@ typed_view "views/customer_stats.sql" do
 end
 ```
 
-`sql_dir`, `snapshot_dir` and `type_overrides` work as they do for `query`. A `SELECT` with `$1..$n` parameters makes a parameterized view, and declares one `argument` per parameter as for `query`. The arguments become the read action's arguments, with their options. `typed_view` takes no `validate` or `prepare`. The developer adds relationships by hand. A `belongs_to` on a view column needs `define_attribute? false`, because the column is already an attribute. `mix ash.codegen` writes the snapshot and the view migration. `define_interface? true` on `typed_view`, or on the `typed_sql` section of the same resource, adds resource-level `define :read` with the view's arguments, and `define :refresh` for a materialized view ([ADR-013](../decisions/ADR-013-define-interface-on-the-resource.md)). The generated read action sets `multitenancy :bypass`, so a view resource ignores a tenant ([ADR-012](../decisions/ADR-012-typed-sql-actions-bypass-multitenancy.md)). `tenant_attribute :organisation_id` names a result column as the tenant column instead. It sets the resource's `multitenancy` `strategy :attribute` and `attribute` ([ADR-021](../decisions/ADR-021-tenant-attribute-sets-attribute-multitenancy.md)), and the generated read then enforces the tenant. A parameterized view refuses `tenant_attribute`.
+`sql_dir`, `snapshot_dir` and `type_overrides` work as they do for `query`. A `SELECT` with `$1..$n` parameters makes a parameterized view, and declares one `argument` per parameter as for `query`. The arguments become the read action's arguments, with their options. `typed_view` takes no `validate` or `prepare`. The developer adds relationships by hand. A `belongs_to` on a view column needs `define_attribute? false`, because the column is already an attribute. `mix ash.codegen` writes the snapshot and the view migration. `define_interface? true` on `typed_view`, or on the `typed_sql` section of the same resource, adds resource-level `define :read` with the view's arguments, and `define :refresh` for a materialized view ([ADR-013](../decisions/ADR-013-define-interface-on-the-resource.md)). The generated read action sets `multitenancy :bypass`, so a view resource ignores a tenant ([ADR-012](../decisions/ADR-012-typed-sql-actions-bypass-multitenancy.md)). `tenant_attribute :organisation_id` names a result column as the tenant column instead. It sets the resource's `multitenancy` `strategy :attribute` and `attribute` ([ADR-021](../decisions/ADR-021-tenant-attribute-sets-attribute-multitenancy.md)), and the generated read then enforces the tenant. A parameterized view refuses `tenant_attribute`. `Ash.Query.as_of/2` needs no option: Ash replaces `now()` in a read filter with the query's `as_of` on any resource, so a declared read that filters on `now()` reads a history view as of that instant.
 
 ## Non-goals
 
@@ -59,6 +60,7 @@ Requiring a `primary_key` option costs one line per view. Inferring it from the 
 
 - A test that changes a column of a view with one dependent view, and runs the generated migration up and down. `AshTypedSql.Codegen.ViewTest`, "retyping a column drops and recreates the dependent view, up and down".
 - A test that a `tenant_attribute` view read returns one tenant's rows. `AshTypedSql.MultitenancyTest`, "a typed_view with tenant_attribute".
+- A test that a view read filtering on `now()` returns rows as they stood at `as_of`, including through a relationship load. `AshTypedSql.AsOfTest`, against Ash 3.37.0.
 
 ## Staging
 
@@ -79,4 +81,6 @@ Refresh scheduling belongs to the application, through `ash_oban`.
   - `ash_sql` refuses aggregates over read actions that use `modify_query` (`AshSql.Aggregate.Lateral`).
   - Loads that `ash_sql` runs as lateral joins, such as a `has_many` with a sort and limit, are not verified.
   - A parameterized view cannot set a `postgres` `schema`.
+- A parameterized view does not see `as_of`, because its parameters are read arguments. An option that bound `as_of` to a parameter would also reach relationship loads, which read arguments do not ([ADR-010](../decisions/ADR-010-parameterized-views-are-functions-read-through-a-cte.md)). Not built.
+- `AshTypedSql.TypeMap` does not map range types, and `type_overrides` takes no constraints, so a view cannot expose a `tstzrange` column as `Ash.Type.Range`. A history view exposes `valid_from` and `valid_to` instead.
 - Codegen does not check that Postgres pushes the tenant filter into the view's base tables. A window partitioned by a column other than the tenant column keeps it out ([ADR-012](../decisions/ADR-012-typed-sql-actions-bypass-multitenancy.md)).

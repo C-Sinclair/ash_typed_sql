@@ -3,7 +3,7 @@ defmodule AshTypedSql.Test.Schema do
 
   @statements [
     "create extension if not exists citext",
-    "drop table if exists schema_migrations, audit_log, invoices, orders, customers cascade",
+    "drop table if exists schema_migrations, audit_log, invoices, entity_observations, legacy_apps, orders, customers cascade",
     "create schema if not exists shelf",
     "drop table if exists shelf.books, shelf.audit_log cascade",
     "drop function if exists customer_stats_since",
@@ -33,6 +33,18 @@ defmodule AshTypedSql.Test.Schema do
     """,
     "create table audit_log (id bigserial primary key, message text not null)",
     "create table invoices (id bigserial primary key, organisation_id uuid not null, total numeric not null)",
+    "create table legacy_apps (id uuid primary key default gen_random_uuid(), name text not null)",
+    """
+    create table entity_observations (
+      id bigserial primary key,
+      legacy_app_id uuid not null references legacy_apps(id),
+      entity text not null,
+      legacy_id text not null,
+      fields jsonb not null,
+      observed_at timestamptz not null
+    )
+    """,
+    "create or replace aggregate jsonb_merge_agg(jsonb) (sfunc = jsonb_concat, stype = jsonb, initcond = '{}')",
     "create unique index customers_unique_email_index on customers (email)",
     "create table shelf.books (id bigserial primary key, isbn text not null unique, title text not null)",
     "create table shelf.audit_log (id bigserial primary key, message text not null)",

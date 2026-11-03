@@ -114,6 +114,55 @@ A parameterized view has two limits:
 - A relationship filter, sort or aggregate into it fails, because a filter cannot pass read arguments.
 - It cannot set a `postgres` `schema`.
 
+## Reading a view as of a point in time
+
+A view over an append-only table of observations can answer "what did this record look like at time `t`?" through `Ash.Query.as_of/2`. The resource needs no temporal attribute. Ash replaces `now()` in a read's filter with the query's `as_of`, on any resource. A read action that filters on `now()` therefore returns each row as it stood at `as_of`, and as it stands now without one.
+
+```sql
+-- priv/typed_sql/views/legacy_records.sql
+select o.legacy_app_id, o.entity, o.legacy_id,
+       jsonb_merge_agg(o.fields) over w as fields,
+       o.observed_at as valid_from,
+       lead(o.observed_at) over w as valid_to
+from entity_observations o
+window w as (partition by o.legacy_app_id, o.entity, o.legacy_id order by o.observed_at
+             rows between unbounded preceding and current row)
+```
+
+```elixir
+typed_view "views/legacy_records.sql" do
+  primary_key [:legacy_app_id, :entity, :legacy_id, :valid_from]
+  not_null [:fields]
+end
+
+actions do
+  read :current do
+    filter expr(valid_from <= now() and (is_nil(valid_to) or valid_to > now()))
+  end
+end
+```
+
+```elixir
+MyApp.Legacy.LegacyRecords
+|> Ash.Query.for_read(:current)
+|> Ash.Query.as_of(~U[2026-02-15 00:00:00Z])
+|> Ash.read!()
+```
+
+Each observation starts a version of its record, and the next observation ends it. The running `jsonb_merge_agg` carries fields forward, so a record observed in parts comes out whole. The view recomputes on every read, so observations may land in any order.
+
+`as_of` sits in the query's shared context, so relationship loads made by the same read see the same instant. A `has_many` into the view with `read_action :current` returns the related records as they stood at `as_of`. The `as_of:` option to `Ash.read/2` does the same as `Ash.Query.as_of/2`.
+
+`jsonb_merge_agg` is not built into Postgres. Create it in a migration before the view's migration:
+
+```sql
+create aggregate jsonb_merge_agg(jsonb) (sfunc = jsonb_concat, stype = jsonb, initcond = '{}')
+```
+
+The view exposes `valid_from` and `valid_to` rather than one `tstzrange` column, because `AshTypedSql.TypeMap` does not map range types. A parameterized view does not see `as_of`, because its parameters are read arguments rather than filters. A materialized view answers only for the observations present at its last refresh.
+
+This behaviour is verified against Ash 3.37.0 by `AshTypedSql.AsOfTest`.
+
 ## Multitenancy
 
 A view read ignores the tenant by default ([Multitenancy](multitenancy.md)). `tenant_attribute` names the result column that holds the tenant, and the generated `:read` then filters by it:

@@ -9,6 +9,8 @@ defmodule AshTypedSql.Test.Views do
     resource(AshTypedSql.Test.Views.CustomerStatsSince)
     resource(AshTypedSql.Test.Views.OrganisationInvoices)
     resource(AshTypedSql.Test.Views.LargeInvoices)
+    resource(AshTypedSql.Test.Views.LegacyApp)
+    resource(AshTypedSql.Test.Views.LegacyRecords)
   end
 end
 
@@ -159,5 +161,59 @@ defmodule AshTypedSql.Test.Views.LargeInvoices do
 
   postgres do
     repo(AshTypedSql.Test.Repo)
+  end
+end
+
+defmodule AshTypedSql.Test.Views.LegacyApp do
+  @moduledoc false
+  use Ash.Resource,
+    domain: AshTypedSql.Test.Views,
+    data_layer: AshPostgres.DataLayer
+
+  postgres do
+    table("legacy_apps")
+    repo(AshTypedSql.Test.Repo)
+    migrate?(false)
+  end
+
+  actions do
+    defaults([:read])
+  end
+
+  attributes do
+    uuid_primary_key(:id)
+    attribute(:name, :string, allow_nil?: false, public?: true)
+  end
+
+  relationships do
+    has_many(:records, AshTypedSql.Test.Views.LegacyRecords,
+      destination_attribute: :legacy_app_id,
+      read_action: :current
+    )
+  end
+end
+
+defmodule AshTypedSql.Test.Views.LegacyRecords do
+  @moduledoc false
+  use Ash.Resource,
+    domain: AshTypedSql.Test.Views,
+    data_layer: AshPostgres.DataLayer,
+    extensions: [AshTypedSql.View]
+
+  typed_view "views/legacy_records.sql" do
+    sql_dir "test/support/typed_sql"
+    snapshot_dir "test/support/typed_sql/snapshots"
+    primary_key [:legacy_app_id, :entity, :legacy_id, :valid_from]
+    not_null [:fields]
+  end
+
+  postgres do
+    repo(AshTypedSql.Test.Repo)
+  end
+
+  actions do
+    read :current do
+      filter(expr(valid_from <= now() and (is_nil(valid_to) or valid_to > now())))
+    end
   end
 end
